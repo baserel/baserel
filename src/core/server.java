@@ -25,7 +25,7 @@ public class server {
 		@Override
 		public void handle(HttpExchange t) throws IOException {
 
-			String response = "This is the response";
+			String response = "[{\"id\":\"11\",\"name\":\"Razor\"},{\"id\":\"12\",\"name\":\"Belt\"}]";
 
 			HttpsExchange httpsExchange = (HttpsExchange) t;
 			t.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
@@ -42,6 +42,9 @@ public class server {
 	public static void main(String[] args) throws Exception {
 
 		try {
+
+			System.out.println("Starting server...");
+
 			// setup the socket address
 			InetSocketAddress address = new InetSocketAddress(8000);
 
@@ -87,6 +90,8 @@ public class server {
 			httpsServer.createContext("/test", new MyHandler());
 			httpsServer.setExecutor(null); // creates a default executor
 			httpsServer.start();
+
+			System.out.println("Server is runing");
 
 		} catch (Exception exception) {
 			System.out.println("Failed to create HTTPS server on port " + 8000 + " of localhost");
