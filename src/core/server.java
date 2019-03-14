@@ -111,7 +111,7 @@ public class server {
 			temp_map = new ConcurrentHashMap<String, String>();
 
 			temp_map.put("name", "Master Developer");
-			temp_map.put("email", "dev@baserel.com");
+			temp_map.put("email", "dev@baserel.io");
 			temp_map.put("pass", "12345678");
 			temp_map.put("verified", "true");
 			temp_map.put("super", "true");
@@ -734,14 +734,14 @@ public class server {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")) != null) {
+					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
 						try {
 
-							response.put("result", "ERR116");
+							response.put("result", "ERR126");
 							response.put("text", "Access denied");
 
 							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name already exists");
+								response.put("info", "User email does not exists");
 							}
 
 						} catch (JSONException e) {
