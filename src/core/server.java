@@ -64,7 +64,7 @@ public class server {
 		server.setExecutor(null); // creates a default executor
 		server.start();
 
-		System.out.println("The server is running");
+		System.out.println("The server is running: 1.3.14");
 
 		String ip;
 		boolean first = true;
