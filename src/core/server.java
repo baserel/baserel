@@ -738,20 +738,6 @@ public class server {
 							e.printStackTrace();
 						}
 
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-						try {
-
-							response.put("result", "ERR103");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name must contain only alphanumeric characters");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
 					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
 						try {
 
@@ -1357,20 +1343,6 @@ public class server {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-					} else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) != null) {
-						try {
-
-							response.put("result", "ERR108");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Table name already exists");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
 					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
 						try {
 
@@ -1385,14 +1357,14 @@ public class server {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_table"))) {
+					} else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
 						try {
 
 							response.put("result", "ERR128");
 							response.put("text", "Access denied");
 
 							if (API_EXPERIMENTAL) {
-								response.put("info", "Table name must contain only alphanumeric characters");
+								response.put("info", "You do not have the privileges to perform this action");
 							}
 
 						} catch (JSONException e) {
@@ -1515,62 +1487,91 @@ public class server {
 					}
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("get_project_info")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+				} else if (parameters.get("_action").equals("get_user_projects")) {
+//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-					if (parameters.get("_project") == null) {
+						if (parameters.get("_email") == null) {
 
-						try {
+							try {
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+								response.put("result", "ERR119");
+								response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
+								if (API_EXPERIMENTAL) {
+									response.put("info", "_email is null");
+								}
+
+							} catch (JSONException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
 							}
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-
-					} else if (DATA.get(parameters.get("_project")) == null) {
-						try {
-
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
+						} else {
+							
+							for (Entry<String, String> entry : DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).entrySet()) {
+								temp_keymap.put(entry.getKey(), DATA.get("_core").get("_projects").get(entry.getKey()));
 							}
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+							response = new JSONObject(temp_keymap);
 						}
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-						try {
 
-							response.put("result", "ERR103");
-							response.put("text", "Access denied");
+//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+					} else if (parameters.get("_action").equals("get_project_info")) {
+//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name must contain only alphanumeric characters");
+						if (parameters.get("_project") == null) {
+
+							try {
+
+								response.put("result", "ERR102");
+								response.put("text", "Access denied");
+
+								if (API_EXPERIMENTAL) {
+									response.put("info", "_project is null");
+								}
+
+							} catch (JSONException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
 							}
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						} else if (DATA.get(parameters.get("_project")) == null) {
+							try {
+
+								response.put("result", "ERR104");
+								response.put("text", "Access denied");
+
+								if (API_EXPERIMENTAL) {
+									response.put("info", "Project name does not exists");
+								}
+
+							} catch (JSONException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+							try {
+
+								response.put("result", "ERR103");
+								response.put("text", "Access denied");
+
+								if (API_EXPERIMENTAL) {
+									response.put("info", "Project name must contain only alphanumeric characters");
+								}
+
+							} catch (JSONException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						} else {
+
+							temp_map = DATA.get("_core").get("_projects").get(parameters.get("_project"));
+
+							response = new JSONObject(temp_map);
 						}
-					} else {
 
-						temp_map = DATA.get("_core").get("_projects").get(parameters.get("_project"));
-
-						response = new JSONObject(temp_map);
-					}
-
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("get_table_info")) {
+//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+					} else if (parameters.get("_action").equals("get_table_info")) {
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 					if (parameters.get("_project") == null) {
