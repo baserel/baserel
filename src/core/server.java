@@ -46,2455 +46,2511 @@ import com.sun.net.httpserver.HttpsServer;
 
 public class server {
 
-	public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1); // Initializing scheduler
-
-	static boolean API_FIRST_RUN = true;
-	static String API_CORE_KEY = "ntiqfki5h28HaVd2eycytwHZn4ooQmRmsU4tQx2y3g7aZCoE8CFbvEWT2omjDjj4"; // System Key to
-																										// validate ADM
-																										// commands
-	static ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>> DATA = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>>();
-	static boolean API_EXPERIMENTAL = true; // Disable ADM API Auth and show additional information while an error
-
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) throws Exception {
-
-		try {
-
-			System.out.println("Starting server...");
-
-			// setup the socket address
-			InetSocketAddress address = new InetSocketAddress(8000);
-
-			// initialise the HTTPS server
-			HttpsServer httpsServer = HttpsServer.create(address, 0);
-			SSLContext sslContext = SSLContext.getInstance("TLS");
-
-			// initialise the keystore
-			char[] password = "password".toCharArray();
-			KeyStore ks = KeyStore.getInstance("JKS");
-			FileInputStream fis = new FileInputStream("testkey.jks");
-			ks.load(fis, password);
+    public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1); // Initializing scheduler
+
+    static boolean API_FIRST_RUN = true;
+    static String API_CORE_KEY = "ntiqfki5h28HaVd2eycytwHZn4ooQmRmsU4tQx2y3g7aZCoE8CFbvEWT2omjDjj4"; // System Key to
+    // validate ADM
+    // commands
+    static ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>> DATA = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>>();
+    static boolean API_EXPERIMENTAL = true; // Disable ADM API Auth and show additional information while an error
+
+    /**
+     * @param args
+     */
+    public static void main(String[] args) throws Exception {
+
+        try {
+
+            System.out.println("Starting server...");
+
+            // setup the socket address
+            InetSocketAddress address = new InetSocketAddress(8000);
+
+            // initialise the HTTPS server
+            HttpsServer httpsServer = HttpsServer.create(address, 0);
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+
+            // initialise the keystore
+            char[] password = "password".toCharArray();
+            KeyStore ks = KeyStore.getInstance("JKS");
+            FileInputStream fis = new FileInputStream("testkey.jks");
+            ks.load(fis, password);
+
+            // setup the key manager factory
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+            kmf.init(ks, password);
 
-			// setup the key manager factory
-			KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-			kmf.init(ks, password);
+            // setup the trust manager factory
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+            tmf.init(ks);
 
-			// setup the trust manager factory
-			TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-			tmf.init(ks);
+            // setup the HTTPS context and parameters
+            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+            httpsServer.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
+                public void configure(HttpsParameters params) {
+                    try {
+                        // initialise the SSL context
+                        SSLContext context = getSSLContext();
+                        SSLEngine engine = context.createSSLEngine();
+                        params.setNeedClientAuth(false);
+                        params.setCipherSuites(engine.getEnabledCipherSuites());
+                        params.setProtocols(engine.getEnabledProtocols());
 
-			// setup the HTTPS context and parameters
-			sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-			httpsServer.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
-				public void configure(HttpsParameters params) {
-					try {
-						// initialise the SSL context
-						SSLContext context = getSSLContext();
-						SSLEngine engine = context.createSSLEngine();
-						params.setNeedClientAuth(false);
-						params.setCipherSuites(engine.getEnabledCipherSuites());
-						params.setProtocols(engine.getEnabledProtocols());
+                        // Set the SSL parameters
+                        SSLParameters sslParameters = context.getSupportedSSLParameters();
+                        params.setSSLParameters(sslParameters);
 
-						// Set the SSL parameters
-						SSLParameters sslParameters = context.getSupportedSSLParameters();
-						params.setSSLParameters(sslParameters);
+                    } catch (Exception ex) {
+                        System.out.println("Failed to create HTTPS port");
+                    }
+                }
+            });
+            // TODO Handlers Contexts
+            httpsServer.createContext("/adm", new AdmHandler());
+            httpsServer.createContext("/put", new PutHandler());
+            httpsServer.createContext("/get", new GetHandler());
+            httpsServer.createContext("/del", new DelHandler());
+            httpsServer.setExecutor(null); // creates a default executor
+            httpsServer.start();
 
-					} catch (Exception ex) {
-						System.out.println("Failed to create HTTPS port");
-					}
-				}
-			});
-			httpsServer.createContext("/adm", new AdmHandler());
-			httpsServer.createContext("/put", new PutHandler());
-			httpsServer.createContext("/get", new GetHandler());
-			httpsServer.createContext("/del", new DelHandler());
-			httpsServer.setExecutor(null); // creates a default executor
-			httpsServer.start();
-
-			System.out.println("Server is runing");
+            System.out.println("Server is runing");
 
-		} catch (Exception exception) {
-			System.out.println("Failed to create HTTPS server on port " + 8000 + " of localhost");
-			exception.printStackTrace();
+        } catch (Exception exception) {
+            System.out.println("Failed to create HTTPS server on port " + 8000 + " of localhost");
+            exception.printStackTrace();
 
-		}
-
-		// PreRunning
-		ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> temp_core = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
-		ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
-
-		if (API_FIRST_RUN) {
-			temp_core.put("_projects", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
-			temp_core.put("_tables", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
-			temp_core.put("_users", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
-			temp_core.put("_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
-			temp_core.put("_projects_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
-			temp_core.put("_user_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+        }
 
-			DATA.put("_core", temp_core);
+        // TODO Pre-Running
 
-			temp_map = new ConcurrentHashMap<String, String>();
-
-			temp_map.put("name", "Master Developer");
-			temp_map.put("email", "dev@baserel.com");
-			temp_map.put("pass", "12345678");
-			temp_map.put("verified", "true");
-			temp_map.put("super", "true");
-			temp_map.put("fingerprint", randomString(32));
-
-			DATA.get("_core").get("_users").put("dev@baserel.com", temp_map);
-		}
-
-		// Runnable
-		Runnable updateGame = new Runnable() {
-			@Override
-			public void run() {
+        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> temp_core = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
+        ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
 
-			}
-		};
+        if (API_FIRST_RUN) {
+            temp_core.put("_projects", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_tables", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_users", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_project_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_user_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_project_tables", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
 
-		int initialDelay = 0;
-		int delay = 1;
+            DATA.put("_core", temp_core);
 
-		scheduler.scheduleWithFixedDelay(updateGame, initialDelay, delay, TimeUnit.SECONDS);
+            temp_map = new ConcurrentHashMap<String, String>();
 
-	}
+            temp_map.put("name", "Master Developer");
+            temp_map.put("email", "dev@baserel.com");
+            temp_map.put("pass", "12345678");
+            temp_map.put("verified", "true");
+            temp_map.put("super", "true");
+            temp_map.put("fingerprint", randomString(32));
 
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	// HANDLERS
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+            DATA.get("_core").get("_users").put("dev@baserel.com", temp_map);
+        }
 
-	static class PutHandler implements HttpHandler {
+        // Runnable
+        Runnable updateGame = new Runnable() {
+            @Override
+            public void run() {
 
-		public void handle(HttpExchange httpExchange) throws IOException {
+            }
+        };
 
-			JSONObject response = new JSONObject();
+        int initialDelay = 0;
+        int delay = 1;
 
-			String uri = httpExchange.getRequestURI().toString();
+        scheduler.scheduleWithFixedDelay(updateGame, initialDelay, delay, TimeUnit.SECONDS);
 
-			String[] parts = uri.split("/");
+    }
 
-			String datamap = parts[2];
-			String continent = parts[3];
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // HANDLERS
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-			HashMap<String, String> parameters = getParameters(httpExchange);
+    // TODO Put Handler
 
-			ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
+    static class PutHandler implements HttpHandler {
 
-			if (parameters.get("_auth") == null) {
-				try {
+        public void handle(HttpExchange httpExchange) throws IOException {
 
-					response.put("result", "ERR100");
-					response.put("text", "Access denied");
+            JSONObject response = new JSONObject();
 
-					if (API_EXPERIMENTAL) {
-						response.put("info", "_auth is null");
-					}
+            String uri = httpExchange.getRequestURI().toString();
 
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
-					|| !StringUtils.isAlphanumeric(continent)) {
-				try {
-					response.put("result", "ERR110");
-					response.put("text", "Access denied");
+            String[] parts = uri.split("/");
 
-					if (API_EXPERIMENTAL) {
-						response.put("info", "Unexpected URI");
-					}
+            String datamap = parts[2];
+            String continent = parts[3];
 
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else if (DATA.get(datamap) == null) {
-				try {
+            HashMap<String, String> parameters = getParameters(httpExchange);
 
-					response.put("result", "ERR104");
-					response.put("text", "Access denied");
+            ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
 
-					if (API_EXPERIMENTAL) {
-						response.put("info", "Project name does not exists");
-					}
+            if (parameters.get("_auth") == null) {
+                try {
 
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else {
+                    response.put("result", "ERR100");
+                    response.put("text", "Access denied");
 
-				String index = (parameters.get("_id") == null ? "" : parameters.get("_id"));
+                    if (API_EXPERIMENTAL) {
+                        response.put("info", "_auth is null");
+                    }
 
-				parameters.remove("_id");
+                } catch (JSONException e) {
 
-				if (!validateDatamapAuth(parameters, datamap)
-						&& DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
-					try {
-						response.put("result", "ERR113");
-						response.put("text", "Access denied");
+                    e.printStackTrace();
+                }
+            } else if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
+                    || !StringUtils.isAlphanumeric(continent)) {
+                try {
+                    response.put("result", "ERR110");
+                    response.put("text", "Access denied");
 
-						if (API_EXPERIMENTAL) {
-							response.put("info",
-									"Datamap Auth Validation failed " + genDatamapAuth2(parameters, datamap));
-						}
+                    if (API_EXPERIMENTAL) {
+                        response.put("info", "Unexpected URI");
+                    }
 
-					} catch (JSONException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				} else {
+                } catch (JSONException e) {
 
-					parameters.remove("_auth");
+                    e.printStackTrace();
+                }
+            } else if (DATA.get(datamap) == null) {
+                try {
 
-					if (DATA.get(datamap).get(continent) == null) {
-						try {
+                    response.put("result", "ERR104");
+                    response.put("text", "Access denied");
 
-							response.put("result", "ERR109");
-							response.put("text", "Access denied");
+                    if (API_EXPERIMENTAL) {
+                        response.put("info", "Project name does not exists");
+                    }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Table name does not exists");
-							}
+                } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
-						if (index.equals("")) {
+                    e.printStackTrace();
+                }
+            } else {
 
-							if (!validateAPIMapKeys(parameters)) {
+                String index = (parameters.get("_id") == null ? "" : parameters.get("_id"));
 
-								try {
-									response.put("result", "ERR112");
-									response.put("text", "Access denied");
+                parameters.remove("_id");
 
-									if (API_EXPERIMENTAL) {
-										response.put("info",
-												"The parameters contains keys with non-alphanumeric characters");
-									}
-								} catch (JSONException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
+                if (!validateDatamapAuth(parameters, datamap)
+                        && DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
+                    try {
+                        response.put("result", "ERR113");
+                        response.put("text", "Access denied");
 
-							} else {
+                        if (API_EXPERIMENTAL) {
+                            response.put("info",
+                                    "Datamap Auth Validation failed " + genDatamapAuth2(parameters, datamap));
+                        }
 
-								temp_map = new ConcurrentHashMap<String, String>();
+                    } catch (JSONException e) {
 
-								for (Entry<String, String> entry : parameters.entrySet()) {
-									temp_map.put(entry.getKey(), entry.getValue());
-								}
+                        e.printStackTrace();
+                    }
+                } else {
 
-								index = DATA.get("_core").get("_tables").get(datamap + "_" + continent).get("index");
+                    parameters.remove("_auth");
 
-								DATA.get(datamap).get(continent).put(index, temp_map);
+                    if (DATA.get(datamap).get(continent) == null) {
+                        try {
 
-								DATA.get("_core").get("_tables").get(datamap + "_" + continent).put("index",
-										(Integer.parseInt(index) + 1) + "");
+                            response.put("result", "ERR109");
+                            response.put("text", "Access denied");
 
-								try {
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Table name does not exists");
+                            }
 
-									response.put("result", "SUC100");
-									response.put("text", "Done");
+                        } catch (JSONException e) {
 
-								} catch (JSONException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
+                            e.printStackTrace();
+                        }
+                    } else {
+                        if (index.equals("")) {
 
-							}
+                            if (!validateAPIMapKeys(parameters)) {
 
-						} else {
-							if (DATA.get(datamap).get(continent).get(index) == null) {
-								try {
+                                try {
+                                    response.put("result", "ERR112");
+                                    response.put("text", "Access denied");
 
-									response.put("result", "ERR111");
-									response.put("text", "Access denied");
+                                    if (API_EXPERIMENTAL) {
+                                        response.put("info",
+                                                "The parameters contains keys with non-alphanumeric characters");
+                                    }
+                                } catch (JSONException e) {
 
-									if (API_EXPERIMENTAL) {
-										response.put("info", "Table record id does not exists");
-									}
+                                    e.printStackTrace();
+                                }
 
-								} catch (JSONException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-							} else {
+                            } else {
 
-								if (!validateAPIMapKeys(parameters)) {
+                                temp_map = new ConcurrentHashMap<String, String>();
 
-									try {
-										response.put("result", "ERR112");
-										response.put("text", "Access denied");
+                                for (Entry<String, String> entry : parameters.entrySet()) {
+                                    temp_map.put(entry.getKey(), entry.getValue());
+                                }
 
-										if (API_EXPERIMENTAL) {
-											response.put("info",
-													"The parameters contains keys with non-alphanumeric characters");
-										}
-									} catch (JSONException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
+                                index = DATA.get("_core").get("_tables").get(datamap + "_" + continent).get("index");
 
-								} else {
+                                DATA.get(datamap).get(continent).put(index, temp_map);
 
-									temp_map = DATA.get(datamap).get(continent).get(index);
+                                DATA.get("_core").get("_tables").get(datamap + "_" + continent).put("index",
+                                        (Integer.parseInt(index) + 1) + "");
 
-									for (Entry<String, String> entry : parameters.entrySet()) {
-										temp_map.put(entry.getKey(), entry.getValue());
-									}
+                                try {
 
-									DATA.get(datamap).get(continent).put(index, temp_map);
+                                    response.put("result", "SUC100");
+                                    response.put("text", "Done");
 
-									try {
+                                } catch (JSONException e) {
 
-										response.put("result", "SUC100");
-										response.put("text", "Done");
-										response.put("_id", index);
+                                    e.printStackTrace();
+                                }
 
-									} catch (JSONException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
+                            }
 
-								}
-							}
-						}
-					}
-				}
-			}
+                        } else {
+                            if (DATA.get(datamap).get(continent).get(index) == null) {
+                                try {
 
-			server.writeResponse(httpExchange, response.toString());
-		}
+                                    response.put("result", "ERR111");
+                                    response.put("text", "Access denied");
 
-	}
+                                    if (API_EXPERIMENTAL) {
+                                        response.put("info", "Table record id does not exists");
+                                    }
 
-	static class GetHandler implements HttpHandler {
+                                } catch (JSONException e) {
 
-		public void handle(HttpExchange httpExchange) throws IOException {
+                                    e.printStackTrace();
+                                }
+                            } else {
 
-			JSONObject response = new JSONObject();
+                                if (!validateAPIMapKeys(parameters)) {
 
-			String uri = httpExchange.getRequestURI().toString();
+                                    try {
+                                        response.put("result", "ERR112");
+                                        response.put("text", "Access denied");
 
-			String[] parts = uri.split("/");
+                                        if (API_EXPERIMENTAL) {
+                                            response.put("info",
+                                                    "The parameters contains keys with non-alphanumeric characters");
+                                        }
+                                    } catch (JSONException e) {
 
-			String datamap = parts[2];
-			String continent = parts[3];
+                                        e.printStackTrace();
+                                    }
 
-			Map<String, String> parameters = getParameters(httpExchange);
+                                } else {
 
-			if (parameters.get("_auth") == null) {
-				try {
+                                    temp_map = DATA.get(datamap).get(continent).get(index);
 
-					response.put("result", "ERR100");
-					response.put("text", "Access denied");
+                                    for (Entry<String, String> entry : parameters.entrySet()) {
+                                        temp_map.put(entry.getKey(), entry.getValue());
+                                    }
 
-					if (API_EXPERIMENTAL) {
-						response.put("info", "_auth is null");
-					}
+                                    DATA.get(datamap).get(continent).put(index, temp_map);
 
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else {
-				if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
-						|| !StringUtils.isAlphanumeric(continent)) {
-					try {
+                                    try {
 
-						response.put("result", "ERR110");
-						response.put("text", "Access denied");
+                                        response.put("result", "SUC100");
+                                        response.put("text", "Done");
+                                        response.put("_id", index);
 
-						if (API_EXPERIMENTAL) {
-							response.put("info", "Unexpected URI");
-						}
+                                    } catch (JSONException e) {
 
-					} catch (JSONException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				} else {
-					if (DATA.get(datamap) == null) {
-						try {
+                                        e.printStackTrace();
+                                    }
 
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
+            server.writeResponse(httpExchange, response.toString());
+        }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
+    }
 
-						String index = (parameters.get("_id") == null ? "" : parameters.get("_id"));
+    //TODO Get Handler
 
-						parameters.remove("_id");
+    static class GetHandler implements HttpHandler {
 
-						if (!validateDatamapAuth(parameters, datamap)
-								&& DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
-							try {
-								response.put("result", "ERR113");
-								response.put("text", "Access denied");
+        public void handle(HttpExchange httpExchange) throws IOException {
 
-								if (API_EXPERIMENTAL) {
-									response.put("info", "Project Auth Validation failed");
-								}
+            JSONObject response = new JSONObject();
 
-							} catch (JSONException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						} else {
+            String uri = httpExchange.getRequestURI().toString();
 
-							parameters.remove("_auth");
+            String[] parts = uri.split("/");
 
-							if (DATA.get(datamap).get(continent) == null) {
-								try {
+            String datamap = parts[2];
+            String continent = parts[3];
 
-									response.put("result", "ERR109");
-									response.put("text", "Access denied");
+            Map<String, String> parameters = getParameters(httpExchange);
 
-									if (API_EXPERIMENTAL) {
-										response.put("info", "Table name does not exists");
-									}
+            if (parameters.get("_auth") == null) {
+                try {
 
-								} catch (JSONException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-							} else {
+                    response.put("result", "ERR100");
+                    response.put("text", "Access denied");
 
-								if (index != "") {
-									response = new JSONObject(DATA.get(datamap).get(continent).get(index));
-								} else if (parameters.size() == 0) {
-									response = new JSONObject(DATA.get(datamap).get(continent));
-								} else {
-									response = new JSONObject(
-											filterContinent(DATA.get(datamap).get(continent), parameters));
-								}
+                    if (API_EXPERIMENTAL) {
+                        response.put("info", "_auth is null");
+                    }
 
-							}
-						}
-					}
-				}
-			}
+                } catch (JSONException e) {
 
-			server.writeResponse(httpExchange, response.toString());
-		}
-	}
+                    e.printStackTrace();
+                }
+            } else {
+                if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
+                        || !StringUtils.isAlphanumeric(continent)) {
+                    try {
 
-	static class DelHandler implements HttpHandler {
+                        response.put("result", "ERR110");
+                        response.put("text", "Access denied");
 
-		public void handle(HttpExchange httpExchange) throws IOException {
+                        if (API_EXPERIMENTAL) {
+                            response.put("info", "Unexpected URI");
+                        }
 
-			JSONObject response = new JSONObject();
+                    } catch (JSONException e) {
 
-			String uri = httpExchange.getRequestURI().toString();
+                        e.printStackTrace();
+                    }
+                } else {
+                    if (DATA.get(datamap) == null) {
+                        try {
 
-			String[] parts = uri.split("/");
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
 
-			String datamap = parts[2];
-			String continent = parts[3];
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
 
-			Map<String, String> parameters = getParameters(httpExchange);
+                        } catch (JSONException e) {
 
-			if (parameters.get("_auth") == null) {
-				try {
+                            e.printStackTrace();
+                        }
+                    } else {
 
-					response.put("result", "ERR100");
-					response.put("text", "Access denied");
+                        String index = (parameters.get("_id") == null ? "" : parameters.get("_id"));
 
-					if (API_EXPERIMENTAL) {
-						response.put("info", "_auth is null");
-					}
+                        parameters.remove("_id");
 
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else {
-				if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
-						|| !StringUtils.isAlphanumeric(continent)) {
-					try {
+                        if (!validateDatamapAuth(parameters, datamap)
+                                && DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
+                            try {
+                                response.put("result", "ERR113");
+                                response.put("text", "Access denied");
 
-						response.put("result", "ERR110");
-						response.put("text", "Access denied");
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", "Project Auth Validation failed");
+                                }
 
-						if (API_EXPERIMENTAL) {
-							response.put("info", "Unexpected URI");
-						}
+                            } catch (JSONException e) {
 
-					} catch (JSONException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				} else {
-					if (DATA.get(datamap) == null) {
-						try {
+                                e.printStackTrace();
+                            }
+                        } else {
 
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
+                            parameters.remove("_auth");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
+                            if (DATA.get(datamap).get(continent) == null) {
+                                try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
+                                    response.put("result", "ERR109");
+                                    response.put("text", "Access denied");
 
-						String index = (parameters.get("_id") == null ? "" : parameters.get("_id"));
+                                    if (API_EXPERIMENTAL) {
+                                        response.put("info", "Table name does not exists");
+                                    }
 
-						parameters.remove("_id");
+                                } catch (JSONException e) {
 
-						if (!validateDatamapAuth(parameters, datamap)
-								&& DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
-							try {
-								response.put("result", "ERR113");
-								response.put("text", "Access denied");
+                                    e.printStackTrace();
+                                }
+                            } else {
 
-								if (API_EXPERIMENTAL) {
-									response.put("info", "Project Auth Validation failed");
-								}
+                                if (index != "") {
+                                    response = new JSONObject(DATA.get(datamap).get(continent).get(index));
+                                } else if (parameters.size() == 0) {
+                                    response = new JSONObject(DATA.get(datamap).get(continent));
+                                } else {
+                                    response = new JSONObject(
+                                            filterContinent(DATA.get(datamap).get(continent), parameters));
+                                }
 
-							} catch (JSONException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						} else {
+                            }
+                        }
+                    }
+                }
+            }
 
-							parameters.remove("_auth");
+            server.writeResponse(httpExchange, response.toString());
+        }
+    }
 
-							if (DATA.get(datamap).get(continent) == null) {
-								try {
+    //TODO Del Handler
 
-									response.put("result", "ERR109");
-									response.put("text", "Access denied");
+    static class DelHandler implements HttpHandler {
 
-									if (API_EXPERIMENTAL) {
-										response.put("info", "Table name does not exists");
-									}
+        public void handle(HttpExchange httpExchange) throws IOException {
 
-								} catch (JSONException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-							} else {
+            JSONObject response = new JSONObject();
 
-								if (index != "") {
+            String uri = httpExchange.getRequestURI().toString();
 
-									DATA.get(datamap).get(continent).remove(index);
+            String[] parts = uri.split("/");
 
-									try {
+            String datamap = parts[2];
+            String continent = parts[3];
 
-										response.put("result", "SUC100");
-										response.put("text", "Done");
+            Map<String, String> parameters = getParameters(httpExchange);
 
-									} catch (JSONException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
+            if (parameters.get("_auth") == null) {
+                try {
 
-								} else if (parameters.size() == 0) {
+                    response.put("result", "ERR100");
+                    response.put("text", "Access denied");
 
-									DATA.get(datamap).get(continent).clear();
+                    if (API_EXPERIMENTAL) {
+                        response.put("info", "_auth is null");
+                    }
 
-									try {
+                } catch (JSONException e) {
 
-										response.put("result", "SUC100");
-										response.put("text", "Done");
+                    e.printStackTrace();
+                }
+            } else {
+                if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
+                        || !StringUtils.isAlphanumeric(continent)) {
+                    try {
 
-									} catch (JSONException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
+                        response.put("result", "ERR110");
+                        response.put("text", "Access denied");
 
-								} else {
+                        if (API_EXPERIMENTAL) {
+                            response.put("info", "Unexpected URI");
+                        }
 
-									filterAndDeleteContinent(datamap, continent, parameters);
+                    } catch (JSONException e) {
 
-									try {
+                        e.printStackTrace();
+                    }
+                } else {
+                    if (DATA.get(datamap) == null) {
+                        try {
 
-										response.put("result", "SUC100");
-										response.put("text", "Done");
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
 
-									} catch (JSONException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
 
-								}
+                        } catch (JSONException e) {
 
-							}
-						}
-					}
-				}
-			}
+                            e.printStackTrace();
+                        }
+                    } else {
 
-			server.writeResponse(httpExchange, response.toString());
-		}
-	}
+                        String index = (parameters.get("_id") == null ? "" : parameters.get("_id"));
 
-	static class AdmHandler implements HttpHandler {
+                        parameters.remove("_id");
 
-		public void handle(HttpExchange httpExchange) throws IOException {
+                        if (!validateDatamapAuth(parameters, datamap)
+                                && DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
+                            try {
+                                response.put("result", "ERR113");
+                                response.put("text", "Access denied");
 
-			JSONObject response = new JSONObject();
-			Map<String, String> parameters = getParameters(httpExchange);
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", "Project Auth Validation failed");
+                                }
 
-			ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> temp_table = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
-			ConcurrentHashMap<String, ConcurrentHashMap<String, String>> temp_keymap = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
-			ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
+                            } catch (JSONException e) {
 
-			if (parameters.get("_auth") == null) {
-				try {
+                                e.printStackTrace();
+                            }
+                        } else {
 
-					response.put("result", "ERR100");
-					response.put("text", "Access denied");
+                            parameters.remove("_auth");
 
-					if (API_EXPERIMENTAL) {
-						response.put("info", "_auth is null");
-					}
+                            if (DATA.get(datamap).get(continent) == null) {
+                                try {
 
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else if (!validateAPIAuth(parameters) && !API_EXPERIMENTAL) {
-				try {
-					response.put("result", "ERR106");
-					response.put("text", "Access denied");
+                                    response.put("result", "ERR109");
+                                    response.put("text", "Access denied");
 
-					if (API_EXPERIMENTAL) {
-						response.put("info", "API Auth Validation failed ");
-					}
+                                    if (API_EXPERIMENTAL) {
+                                        response.put("info", "Table name does not exists");
+                                    }
 
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+                                } catch (JSONException e) {
 
-			} else if (parameters.get("_action") == null) {
-				try {
+                                    e.printStackTrace();
+                                }
+                            } else {
 
-					response.put("result", "ERR101");
-					response.put("text", "Access denied");
+                                if (index != "") {
 
-					if (API_EXPERIMENTAL) {
-						response.put("info", "_action is null");
-					}
+                                    DATA.get(datamap).get(continent).remove(index);
 
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else {
+                                    try {
 
-				// Start Defining actions
+                                        response.put("result", "SUC100");
+                                        response.put("text", "Done");
+
+                                    } catch (JSONException e) {
+
+                                        e.printStackTrace();
+                                    }
+
+                                } else if (parameters.size() == 0) {
+
+                                    DATA.get(datamap).get(continent).clear();
+
+                                    try {
+
+                                        response.put("result", "SUC100");
+                                        response.put("text", "Done");
+
+                                    } catch (JSONException e) {
+
+                                        e.printStackTrace();
+                                    }
+
+                                } else {
+
+                                    filterAndDeleteContinent(datamap, continent, parameters);
+
+                                    try {
+
+                                        response.put("result", "SUC100");
+                                        response.put("text", "Done");
+
+                                    } catch (JSONException e) {
+
+                                        e.printStackTrace();
+                                    }
+
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+
+            server.writeResponse(httpExchange, response.toString());
+        }
+    }
+
+    //TODO Adm Handler
+
+    static class AdmHandler implements HttpHandler {
+
+        public void handle(HttpExchange httpExchange) throws IOException {
+
+            JSONObject response = new JSONObject();
+            Map<String, String> parameters = getParameters(httpExchange);
+
+            ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> temp_table = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
+            ConcurrentHashMap<String, ConcurrentHashMap<String, String>> temp_keymap = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
+            ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
+
+            if (parameters.get("_auth") == null) {
+                try {
+
+                    response.put("result", "ERR100");
+                    response.put("text", "Access denied");
+
+                    if (API_EXPERIMENTAL) {
+                        response.put("info", "_auth is null");
+                    }
+
+                } catch (JSONException e) {
+
+                    e.printStackTrace();
+                }
+            } else if (!validateAPIAuth(parameters) && !API_EXPERIMENTAL) {
+                try {
+                    response.put("result", "ERR106");
+                    response.put("text", "Access denied");
+
+                    if (API_EXPERIMENTAL) {
+                        response.put("info", "API Auth Validation failed ");
+                    }
+
+                } catch (JSONException e) {
+
+                    e.printStackTrace();
+                }
+
+            } else if (parameters.get("_action") == null) {
+                try {
+
+                    response.put("result", "ERR101");
+                    response.put("text", "Access denied");
+
+                    if (API_EXPERIMENTAL) {
+                        response.put("info", "_action is null");
+                    }
+
+                } catch (JSONException e) {
+
+                    e.printStackTrace();
+                }
+            } else {
+
+                // Start Defining actions
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				if (parameters.get("_action").equals("create_project")) { // create_project command
-					if (parameters.get("_project") == null) {
 
-						try {
+                //TODO Action : Create Project
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+                if (parameters.get("_action").equals("create_project")) { // create_project command
+                    if (parameters.get("_project") == null) {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
-							}
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
 
-					} else if (parameters.get("_email") == null) {
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
 
-						try {
+                        } catch (JSONException e) {
 
-							response.put("result", "ERR119");
-							response.put("text", "Access denied");
+                            e.printStackTrace();
+                        }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_email is null");
-							}
+                    } else if (parameters.get("_email") == null) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        try {
 
-					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
-						try {
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR126");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "User email does not exists");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
+                            e.printStackTrace();
+                        }
 
-						DATA.put(parameters.get("_project"), temp_table);
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+                        try {
 
-						temp_map = new ConcurrentHashMap<String, String>();
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
 
-						temp_map.put("name", parameters.get("_project"));
-						temp_map.put("security", "false");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
 
-						String project_code = randomString(32);
-						String privileges_code = randomString(32);
+                        } catch (JSONException e) {
 
-						DATA.get("_core").get("_projects").put(project_code, temp_map);
+                            e.printStackTrace();
+                        }
+                    } else {
 
-						temp_map = new ConcurrentHashMap<String, String>();
+                        DATA.put(parameters.get("_project"), temp_table);
 
-						temp_map.put("email", parameters.get("_email"));
-						temp_map.put("project", project_code);
-						temp_map.put("get", "true");
-						temp_map.put("put", "true");
-						temp_map.put("del", "true");
-						temp_map.put("adm", "true");
-						temp_map.put("cmd", "true");
+                        temp_map = new ConcurrentHashMap<String, String>();
 
-						DATA.get("_core").get("_privileges").put(privileges_code, temp_map);
+                        temp_map.put("name", parameters.get("_project"));
+                        temp_map.put("security", "false");
 
-						temp_map = new ConcurrentHashMap<String, String>();
+                        String project_code = randomString(32);
+                        String privileges_code = randomString(32);
 
-						DATA.get("_core").get("_projects_privileges").put(project_code,
-								new ConcurrentHashMap<String, String>());
+                        DATA.get("_core").get("_projects").put(project_code, temp_map);
 
-						DATA.get("_core").get("_projects_privileges").get(project_code).put(parameters.get("_email"),
-								DATA.get("_core").get("_users").get(parameters.get("_email")).get("fingerprint"));
+                        temp_map = new ConcurrentHashMap<String, String>();
 
-						DATA.get("_core").get("_user_privileges").put(parameters.get("_email"),
-								new ConcurrentHashMap<String, String>());
+                        temp_map.put("email", parameters.get("_email"));
+                        temp_map.put("project", project_code);
+                        temp_map.put("get", "true");
+                        temp_map.put("put", "true");
+                        temp_map.put("del", "true");
+                        temp_map.put("adm", "true");
+                        temp_map.put("cmd", "true");
 
-						DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).put(project_code,
-								privileges_code);
+                        DATA.get("_core").get("_privileges").put(privileges_code, temp_map);
 
-						try {
+                        temp_map = new ConcurrentHashMap<String, String>();
 
-							response.put("result", "SUC100");
-							response.put("text", "Done");
+                        DATA.get("_core").get("_project_privileges").put(project_code,
+                                new ConcurrentHashMap<String, String>());
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        DATA.get("_core").get("_project_privileges").get(project_code).put(parameters.get("_email"),
+                                DATA.get("_core").get("_users").get(parameters.get("_email")).get("fingerprint"));
 
-					}
+                        DATA.get("_core").get("_user_privileges").put(parameters.get("_email"),
+                                new ConcurrentHashMap<String, String>());
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("reset_project_key")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                        DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).put(project_code,
+                                privileges_code);
 
-					if (parameters.get("_project") == null) {
+                        try {
 
-						try {
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+                        } catch (JSONException e) {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
-							}
+                            e.printStackTrace();
+                        }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-
-					} else if (DATA.get(parameters.get("_project")) == null) {
-						try {
-
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
-
-						DATA.get("_core").get("_projects").get(parameters.get("_project")).put("key", randomString(36));
-
-						try {
-
-							response.put("result", "SUC100");
-							response.put("text", "Done");
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-
-					}
+                    }
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("create_user")) {
+                } else if (parameters.get("_action").equals("reset_project_key")) {
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-					if (parameters.get("_name") == null) {
+                    if (parameters.get("_project") == null) {
 
-						try {
+                        try {
 
-							response.put("result", "ERR118");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_name is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (parameters.get("_email") == null) {
+                            e.printStackTrace();
+                        }
 
-						try {
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
 
-							response.put("result", "ERR119");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_email is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (parameters.get("_pass") == null) {
+                            e.printStackTrace();
+                        }
+                    } else {
 
-						try {
+                        DATA.get("_core").get("_projects").get(parameters.get("_project")).put("key", randomString(36));
 
-							response.put("result", "ERR120");
-							response.put("text", "Access denied");
+                        try {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_pass is null");
-							}
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (parameters.get("_pass").length() < 8) {
+                            e.printStackTrace();
+                        }
 
-						try {
+                    }
 
-							response.put("result", "ERR124");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_pass must be at least 8 characters long");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-
-					} else if (parameters.get("_verified") == null) {
-
-						try {
-
-							response.put("result", "ERR121");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_verified is null");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-
-					} else if (!parameters.get("_verified").equals("true")
-							&& !parameters.get("_verified").equals("false")) {
-
-						try {
-
-							response.put("result", "ERR115");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "_verified is null");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-
-					} else if (parameters.get("_super") == null) {
-						try {
-
-							response.put("result", "ERR122");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "Project name does not exists");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!parameters.get("_super").equals("true") && !parameters.get("_super").equals("false")) {
-						try {
-
-							response.put("result", "ERR115");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "Project name does not exists");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!isValidEmail(parameters.get("_email"))) {
-						try {
-
-							response.put("result", "ERR125");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "Project name does not exists");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")) != null) {
-						try {
-
-							response.put("result", "ERR123");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "Project name does not exists");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
-
-						temp_map = new ConcurrentHashMap<String, String>();
-
-						temp_map.put("name", parameters.get("_name"));
-						temp_map.put("email", parameters.get("_email"));
-						temp_map.put("pass", parameters.get("_pass"));
-						temp_map.put("verified", parameters.get("_verified"));
-						temp_map.put("super", parameters.get("_super"));
-						temp_map.put("fingerprint", randomString(32));
-
-						DATA.get("_core").get("_users").put(parameters.get("_email"), temp_map);
-
-						try {
-							response.put("result", "SUC100");
-							response.put("text", "Done");
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+                    //TODO Action : Create User
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("edit_user")) {
+                } else if (parameters.get("_action").equals("create_user")) {
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-					if (parameters.get("_email") == null) {
+                    if (parameters.get("_name") == null) {
 
-						try {
+                        try {
 
-							response.put("result", "ERR119");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR118");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_email is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_name is null");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+                            e.printStackTrace();
+                        }
 
-						try {
+                    } else if (parameters.get("_email") == null) {
 
-							response.put("result", "ERR126");
-							response.put("text", "Access denied");
+                        try {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "User email does not exists");
-							}
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
 
-					} else if (parameters.get("_pass") != null && parameters.get("_pass").length() < 8) {
+                        } catch (JSONException e) {
 
-						try {
+                            e.printStackTrace();
+                        }
 
-							response.put("result", "ERR124");
-							response.put("text", "Access denied");
+                    } else if (parameters.get("_pass") == null) {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_pass must be at least 8 characters long");
-							}
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            response.put("result", "ERR120");
+                            response.put("text", "Access denied");
 
-					} else if (parameters.get("_verified") != null && !parameters.get("_verified").equals("true")
-							&& !parameters.get("_verified").equals("false")) {
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_pass is null");
+                            }
 
-						try {
+                        } catch (JSONException e) {
 
-							response.put("result", "ERR115");
-							response.put("text", "Access denied");
+                            e.printStackTrace();
+                        }
 
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "_verified is null");
-							}
+                    } else if (parameters.get("_pass").length() < 8) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        try {
 
-					} else if (parameters.get("_super") != null && !parameters.get("_super").equals("true")
-							&& !parameters.get("_super").equals("false")) {
-						try {
+                            response.put("result", "ERR124");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR115");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_pass must be at least 8 characters long");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "Project name does not exists");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (parameters.get("_nemail") != null && !isValidEmail(parameters.get("_nemail"))) {
-						try {
+                            e.printStackTrace();
+                        }
 
-							response.put("result", "ERR125");
-							response.put("text", "Access denied");
+                    } else if (parameters.get("_verified") == null) {
 
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "Project name does not exists");
-							}
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (parameters.get("_nemail") != null
-							&& !parameters.get("_nemail").equals(parameters.get("_email"))
-							&& DATA.get("_core").get("_users").get(parameters.get("_nemail")) != null) {
-						try {
+                            response.put("result", "ERR121");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR123");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_verified is null");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								// response.put("info", "Project name does not exists");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
+                            e.printStackTrace();
+                        }
 
-						temp_map = DATA.get("_core").get("_users").get(parameters.get("_email"));
+                    } else if (!parameters.get("_verified").equals("true")
+                            && !parameters.get("_verified").equals("false")) {
 
-						if (parameters.get("_name") != null)
-							temp_map.put("name", parameters.get("_name"));
+                        try {
 
-						if (parameters.get("_nemail") != null)
-							temp_map.put("email", parameters.get("_nemail"));
+                            response.put("result", "ERR115");
+                            response.put("text", "Access denied");
 
-						if (parameters.get("_pass") != null)
-							temp_map.put("pass", parameters.get("_pass"));
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "_verified is null");
+                            }
 
-						if (parameters.get("_verified") != null)
-							temp_map.put("verified", parameters.get("_verified"));
+                        } catch (JSONException e) {
 
-						if (parameters.get("_super") != null)
-							temp_map.put("super", parameters.get("_super"));
+                            e.printStackTrace();
+                        }
 
-						DATA.get("_core").get("_users").put(parameters.get("_email"), temp_map);
+                    } else if (parameters.get("_super") == null) {
+                        try {
 
-						try {
-							response.put("result", "SUC100");
-							response.put("text", "Done");
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+                            response.put("result", "ERR122");
+                            response.put("text", "Access denied");
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("get_user")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "Project name does not exists");
+                            }
 
-					if (parameters.get("_email") == null) {
+                        } catch (JSONException e) {
 
-						try {
+                            e.printStackTrace();
+                        }
+                    } else if (!parameters.get("_super").equals("true") && !parameters.get("_super").equals("false")) {
+                        try {
 
-							response.put("result", "ERR119");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR115");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_email is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "Project name does not exists");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+                            e.printStackTrace();
+                        }
+                    } else if (!isValidEmail(parameters.get("_email"))) {
+                        try {
 
-						try {
+                            response.put("result", "ERR125");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR126");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "Project name does not exists");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "User does not exists");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            e.printStackTrace();
+                        }
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) != null) {
+                        try {
 
-					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")).get("super")
-							.equals("true")) {
+                            response.put("result", "ERR123");
+                            response.put("text", "Access denied");
 
-						try {
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "Project name does not exists");
+                            }
 
-							response.put("result", "ERR127");
-							response.put("text", "Access denied");
+                        } catch (JSONException e) {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "This user cannot be deleted");
-							}
+                            e.printStackTrace();
+                        }
+                    } else {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        temp_map = new ConcurrentHashMap<String, String>();
 
-					} else {
+                        temp_map.put("name", parameters.get("_name"));
+                        temp_map.put("email", parameters.get("_email"));
+                        temp_map.put("pass", parameters.get("_pass"));
+                        temp_map.put("verified", parameters.get("_verified"));
+                        temp_map.put("super", parameters.get("_super"));
+                        temp_map.put("fingerprint", randomString(32));
 
-						response = new JSONObject(DATA.get("_core").get("_users").get(parameters.get("_email")));
+                        DATA.get("_core").get("_users").put(parameters.get("_email"), temp_map);
 
-					}
+                        try {
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    }
+
+                    //TODO Action : Edit User
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("delete_user")) {
+                } else if (parameters.get("_action").equals("edit_user")) {
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-					if (parameters.get("_email") == null) {
+                    if (parameters.get("_email") == null) {
 
-						try {
+                        try {
 
-							response.put("result", "ERR119");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_email is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+                            e.printStackTrace();
+                        }
 
-						try {
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
 
-							response.put("result", "ERR126");
-							response.put("text", "Access denied");
+                        try {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "User does not exists");
-							}
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
 
-					} else {
+                        } catch (JSONException e) {
 
-						DATA.get("_core").get("_users").remove(parameters.get("_email"));
-						DATA.get("_core").get("_user_privileges").remove(parameters.get("_email"));
+                            e.printStackTrace();
+                        }
 
-						try {
+                    } else if (parameters.get("_pass") != null && parameters.get("_pass").length() < 8) {
 
-							response.put("result", "SUC100");
-							response.put("text", "Done");
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            response.put("result", "ERR124");
+                            response.put("text", "Access denied");
 
-					}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_pass must be at least 8 characters long");
+                            }
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("get_all_users")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                        } catch (JSONException e) {
 
-					response = new JSONObject(DATA.get("_core").get("_users"));
+                            e.printStackTrace();
+                        }
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("create_project_table")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                    } else if (parameters.get("_verified") != null && !parameters.get("_verified").equals("true")
+                            && !parameters.get("_verified").equals("false")) {
 
-					if (parameters.get("_project") == null) {
+                        try {
 
-						try {
+                            response.put("result", "ERR115");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "_verified is null");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            e.printStackTrace();
+                        }
 
-					} else if (DATA.get(parameters.get("_project")) == null) {
-						try {
+                    } else if (parameters.get("_super") != null && !parameters.get("_super").equals("true")
+                            && !parameters.get("_super").equals("false")) {
+                        try {
 
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR115");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "Project name does not exists");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (parameters.get("_table") == null) {
-						try {
+                        } catch (JSONException e) {
 
-							response.put("result", "ERR107");
-							response.put("text", "Access denied");
+                            e.printStackTrace();
+                        }
+                    } else if (parameters.get("_nemail") != null && !isValidEmail(parameters.get("_nemail"))) {
+                        try {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_table is null");
-							}
+                            response.put("result", "ERR125");
+                            response.put("text", "Access denied");
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-						try {
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "Project name does not exists");
+                            }
 
-							response.put("result", "ERR103");
-							response.put("text", "Access denied");
+                        } catch (JSONException e) {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name must contain only alphanumeric characters");
-							}
+                            e.printStackTrace();
+                        }
+                    } else if (parameters.get("_nemail") != null
+                            && !parameters.get("_nemail").equals(parameters.get("_email"))
+                            && DATA.get("_core").get("_users").get(parameters.get("_nemail")) != null) {
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
-						try {
+                            response.put("result", "ERR123");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR128");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                // response.put("info", "Project name does not exists");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "You do not have the privileges to perform this action");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
+                            e.printStackTrace();
+                        }
+                    } else {
 
-						DATA.get(parameters.get("_project")).put(parameters.get("_table"), temp_keymap);
+                        temp_map = DATA.get("_core").get("_users").get(parameters.get("_email"));
 
-						temp_map = new ConcurrentHashMap<String, String>();
-						temp_map.put("index", "1");
+                        if (parameters.get("_name") != null)
+                            temp_map.put("name", parameters.get("_name"));
 
-						DATA.get("_core").get("_tables")
-								.put(parameters.get("_project") + "_" + parameters.get("_table"), temp_map);
+                        if (parameters.get("_nemail") != null)
+                            temp_map.put("email", parameters.get("_nemail"));
 
-						try {
+                        if (parameters.get("_pass") != null)
+                            temp_map.put("pass", parameters.get("_pass"));
 
-							response.put("result", "SUC100");
-							response.put("text", "Done");
+                        if (parameters.get("_verified") != null)
+                            temp_map.put("verified", parameters.get("_verified"));
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        if (parameters.get("_super") != null)
+                            temp_map.put("super", parameters.get("_super"));
 
-					}
+                        DATA.get("_core").get("_users").put(parameters.get("_email"), temp_map);
+
+                        try {
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    }
+
+                    //TODO Action : Get User
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("delete_project_table")) {
+                } else if (parameters.get("_action").equals("get_user")) {
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-					if (parameters.get("_project") == null) {
+                    if (parameters.get("_email") == null) {
 
-						try {
+                        try {
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (DATA.get(parameters.get("_project")) == null) {
-						try {
+                            e.printStackTrace();
+                        }
 
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (parameters.get("_table") == null) {
-						try {
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR107");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User does not exists");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_table is null");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-						try {
+                            e.printStackTrace();
+                        }
 
-							response.put("result", "ERR103");
-							response.put("text", "Access denied");
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")).get("super")
+                            .equals("true")) {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name must contain only alphanumeric characters");
-							}
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
-						try {
+                            response.put("result", "ERR127");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR109");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "This user cannot be deleted");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Table name does not exists");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
+                            e.printStackTrace();
+                        }
 
-						DATA.get("_core").get("_tables")
-								.remove(parameters.get("_project") + "_" + parameters.get("_table"));
-						DATA.get(parameters.get("_project")).remove(parameters.get("_table"));
+                    } else {
 
-						try {
+                        response = new JSONObject(DATA.get("_core").get("_users").get(parameters.get("_email")));
 
-							response.put("result", "SUC100");
-							response.put("text", "Done");
+                    }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+                    //TODO Action : Delete User
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("get_user_projects")) {
+                } else if (parameters.get("_action").equals("delete_user")) {
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else {
+
+                        DATA.get("_core").get("_users").remove(parameters.get("_email"));
+                        DATA.get("_core").get("_user_privileges").remove(parameters.get("_email"));
+
+                        try {
+
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    }
+
+                    //TODO Action : Get All Users
+
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("get_all_users")) {
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+                    response = new JSONObject(DATA.get("_core").get("_users"));
+
+                    //TODO Action : Create Project Table
+
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("create_project_table")) {
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+                    if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (parameters.get("_table") == null) {
+                        try {
+
+                            response.put("result", "ERR107");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_table is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name must contain only alphanumeric characters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "You do not have the privileges to perform this action");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else {
+
+
+                        String table_code = randomString(32);
+
+                        DATA.get(parameters.get("_project")).put(table_code, temp_keymap);
+
+                        temp_map = new ConcurrentHashMap<String, String>();
+                        temp_map.put("index", "1");
+                        temp_map.put("name", parameters.get("_table"));
+
+
+                        DATA.get("_core").get("_tables")
+                                .put(parameters.get("_project") + "_" + table_code, temp_map);
+
+                        if (DATA.get("_core").get("_project_tables").get(parameters.get("_project")) == null) {
+                            temp_map = new ConcurrentHashMap<String, String>();
+                            DATA.get("_core").get("_project_tables").put(parameters.get("_project"), temp_map);
+                        }
+
+                        DATA.get("_core").get("_project_tables").get(parameters.get("_project")).put(table_code, table_code);
+
+                        try {
+
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    }
+
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("delete_project_table")) {
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+                    if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (parameters.get("_table") == null) {
+                        try {
+
+                            response.put("result", "ERR107");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_table is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name must contain only alphanumeric characters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
+                        try {
+
+                            response.put("result", "ERR109");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Table name does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else {
+
+                        DATA.get("_core").get("_tables")
+                                .remove(parameters.get("_project") + "_" + parameters.get("_table"));
+                        DATA.get(parameters.get("_project")).remove(parameters.get("_table"));
+
+                        try {
+
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    }
+
+                    //TODO Action : Get User Projects
+
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("get_user_projects")) {
 //					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-						if (parameters.get("_email") == null) {
+                    if (parameters.get("_email") == null) {
 
-							try {
+                        try {
 
-								response.put("result", "ERR119");
-								response.put("text", "Access denied");
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
 
-								if (API_EXPERIMENTAL) {
-									response.put("info", "_email is null");
-								}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
 
-							} catch (JSONException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
+                        } catch (JSONException e) {
 
-						} else {
-							
-							for (Entry<String, String> entry : DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).entrySet()) {
-								temp_keymap.put(entry.getKey(), DATA.get("_core").get("_projects").get(entry.getKey()));
-							}
+                            e.printStackTrace();
+                        }
 
-							response = new JSONObject(temp_keymap);
-						}
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
 
-//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-					} else if (parameters.get("_action").equals("get_project_info")) {
-//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                        try {
 
-						if (parameters.get("_project") == null) {
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
 
-							try {
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
 
-								response.put("result", "ERR102");
-								response.put("text", "Access denied");
+                        } catch (JSONException e) {
 
-								if (API_EXPERIMENTAL) {
-									response.put("info", "_project is null");
-								}
+                            e.printStackTrace();
+                        }
 
-							} catch (JSONException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
+                    } else {
 
-						} else if (DATA.get(parameters.get("_project")) == null) {
-							try {
+                        for (Entry<String, String> entry : DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).entrySet()) {
+                            temp_keymap.put(entry.getKey(), DATA.get("_core").get("_projects").get(entry.getKey()));
+                        }
 
-								response.put("result", "ERR104");
-								response.put("text", "Access denied");
-
-								if (API_EXPERIMENTAL) {
-									response.put("info", "Project name does not exists");
-								}
-
-							} catch (JSONException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-							try {
-
-								response.put("result", "ERR103");
-								response.put("text", "Access denied");
-
-								if (API_EXPERIMENTAL) {
-									response.put("info", "Project name must contain only alphanumeric characters");
-								}
-
-							} catch (JSONException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						} else {
-
-							temp_map = DATA.get("_core").get("_projects").get(parameters.get("_project"));
-
-							response = new JSONObject(temp_map);
-						}
+                        response = new JSONObject(temp_keymap);
+                    }
 
 //					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-					} else if (parameters.get("_action").equals("get_table_info")) {
+                } else if (parameters.get("_action").equals("get_project_info")) {
+//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+                    if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name must contain only alphanumeric characters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else {
+
+                        temp_map = DATA.get("_core").get("_projects").get(parameters.get("_project"));
+
+                        response = new JSONObject(temp_map);
+                    }
+
+//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("get_table_info")) {
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-					if (parameters.get("_project") == null) {
+                    if (parameters.get("_project") == null) {
 
-						try {
+                        try {
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (parameters.get("_table") == null) {
+                            e.printStackTrace();
+                        }
 
-						try {
+                    } else if (parameters.get("_table") == null) {
 
-							response.put("result", "ERR107");
-							response.put("text", "Access denied");
+                        try {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_table is null");
-							}
+                            response.put("result", "ERR107");
+                            response.put("text", "Access denied");
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_table is null");
+                            }
 
-					} else if (DATA.get(parameters.get("_project")) == null) {
-						try {
+                        } catch (JSONException e) {
 
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
+                            e.printStackTrace();
+                        }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-						try {
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR103");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name must contain only alphanumeric characters");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
-						try {
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
 
-							response.put("result", "ERR109");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Table name does not exists");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name must contain only alphanumeric characters");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
+                        } catch (JSONException e) {
 
-						temp_map = DATA.get("_core").get("_tables")
-								.get(parameters.get("_project") + "_" + parameters.get("_table"));
+                            e.printStackTrace();
+                        }
+                    } else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
+                        try {
 
-						response = new JSONObject(temp_map);
+                            response.put("result", "ERR109");
+                            response.put("text", "Access denied");
 
-					}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Table name does not exists");
+                            }
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("get_project_tables")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                        } catch (JSONException e) {
 
-					if (parameters.get("_project") == null) {
+                            e.printStackTrace();
+                        }
+                    } else {
 
-						try {
+                        temp_map = DATA.get("_core").get("_tables")
+                                .get(parameters.get("_project") + "_" + parameters.get("_table"));
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+                        response = new JSONObject(temp_map);
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-
-					} else if (DATA.get(parameters.get("_project")) == null) {
-						try {
-
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-						try {
-
-							response.put("result", "ERR103");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name must contain only alphanumeric characters");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
-						try {
-							response.put("continents", getContinentList(DATA.get(parameters.get("_project"))));
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+                    }
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("set_project_security")) {
+                } else if (parameters.get("_action").equals("get_project_tables")) {
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-					if (parameters.get("_project") == null) {
+                    if (parameters.get("_project") == null) {
 
-						try {
+                        try {
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (parameters.get("_security") == null) {
+                            e.printStackTrace();
+                        }
 
-						try {
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
 
-							response.put("result", "ERR114");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_security is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (!parameters.get("_security").equals("true")
-							&& !parameters.get("_security").equals("false")) {
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
 
-						try {
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR115");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name must contain only alphanumeric characters");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Unexpected value");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                            e.printStackTrace();
+                        }
+                    } else {
+                        try {
+                            response.put("continents", getContinentList(DATA.get(parameters.get("_project"))));
+                        } catch (JSONException e) {
 
-					} else if (DATA.get(parameters.get("_project")) == null) {
-						try {
-
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-						try {
-
-							response.put("result", "ERR103");
-							response.put("text", "Access denied");
-
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name must contain only alphanumeric characters");
-							}
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
-						DATA.get("_core").get("_projects").get(parameters.get("_project")).put("security",
-								parameters.get("_security"));
-
-						try {
-
-							response.put("result", "SUC100");
-							response.put("text", "Done");
-
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+                            e.printStackTrace();
+                        }
+                    }
 
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-				} else if (parameters.get("_action").equals("delete_project")) {
+                } else if (parameters.get("_action").equals("set_project_security")) {
 //				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-					if (parameters.get("_project") == null) {
+                    if (parameters.get("_project") == null) {
 
-						try {
+                        try {
 
-							response.put("result", "ERR102");
-							response.put("text", "Access denied");
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "_project is null");
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+                        } catch (JSONException e) {
 
-					} else if (DATA.get(parameters.get("_project")) == null) {
-						try {
+                            e.printStackTrace();
+                        }
 
-							response.put("result", "ERR104");
-							response.put("text", "Access denied");
+                    } else if (parameters.get("_security") == null) {
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name does not exists");
-							}
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-						try {
+                            response.put("result", "ERR114");
+                            response.put("text", "Access denied");
 
-							response.put("result", "ERR103");
-							response.put("text", "Access denied");
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_security is null");
+                            }
 
-							if (API_EXPERIMENTAL) {
-								response.put("info", "Project name must contain only alphanumeric characters");
-							}
+                        } catch (JSONException e) {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
-						DATA.get("_core").get("_projects").remove(parameters.get("_project"));
-						DATA.remove(parameters.get("_project"));
+                            e.printStackTrace();
+                        }
 
-						try {
+                    } else if (!parameters.get("_security").equals("true")
+                            && !parameters.get("_security").equals("false")) {
 
-							response.put("result", "SUC100");
-							response.put("text", "Done");
+                        try {
 
-						} catch (JSONException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+                            response.put("result", "ERR115");
+                            response.put("text", "Access denied");
 
-					// END DEFINING ACTIONS
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Unexpected value");
+                            }
 
-				} else {
-					try {
+                        } catch (JSONException e) {
 
-						response.put("result", "ERR105");
-						response.put("text", "Access denied");
+                            e.printStackTrace();
+                        }
 
-						if (API_EXPERIMENTAL) {
-							response.put("info", "Unkown action");
-						}
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
 
-					} catch (JSONException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
 
-			}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
 
-			server.writeResponse(httpExchange, response.toString());
+                        } catch (JSONException e) {
 
-		}
-	}
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
 
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	// HELPER METHODS
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
 
-	public static boolean hasPriviliges(String email, String projectcode, String privilege) {
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name must contain only alphanumeric characters");
+                            }
 
-		boolean access = true;
-		String priviliegecode;
+                        } catch (JSONException e) {
 
-		if (DATA.get("_core").get("_user_privileges").get(email).get(projectcode) != null) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        DATA.get("_core").get("_projects").get(parameters.get("_project")).put("security",
+                                parameters.get("_security"));
 
-			priviliegecode = DATA.get("_core").get("_user_privileges").get(email).get(projectcode);
+                        try {
 
-			if (DATA.get("_core").get("_privileges").get(priviliegecode).get(privilege).equals("true")) {
-				access = true;
-			} else {
-				access = false;
-			}
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
 
-		} else {
-			access = false;
-		}
+                        } catch (JSONException e) {
 
-		return access;
+                            e.printStackTrace();
+                        }
+                    }
 
-	}
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("delete_project")) {
+//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	public static boolean isValidEmail(String emailAddress) {
-		return emailAddress.contains(" ") == false && emailAddress.matches(".+@.+\\.[a-z]+");
-	}
+                    if (parameters.get("_project") == null) {
 
-	public static ConcurrentHashMap<String, ConcurrentHashMap<String, String>> filterContinent(
-			ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, Map<String, String> params) {
+                        try {
 
-		ConcurrentHashMap<String, ConcurrentHashMap<String, String>> result = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
-		boolean success = true;
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
 
-		for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
 
-			for (Entry<String, String> c_entry : params.entrySet()) {
-				if (entry.getValue().get(c_entry.getKey()) != null) {
+                        } catch (JSONException e) {
 
-					if (c_entry.getValue().substring(0, 1).equals("!")) {
-						if (!entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue().substring(1))) {
-							result.put(entry.getKey(), entry.getValue());
-						}
-					} else if (c_entry.getValue().substring(0, 2).equals(">=")) {
-						if (isDouble(entry.getValue().get(c_entry.getKey()))
-								&& isDouble(c_entry.getValue().substring(2))) {
+                            e.printStackTrace();
+                        }
 
-							if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) >= Float
-									.parseFloat(c_entry.getValue().substring(2))) {
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
 
-								result.put(entry.getKey(), entry.getValue());
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
 
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name does not exists");
+                            }
 
-						} else {
-							success = false;
-						}
-					} else if (c_entry.getValue().substring(0, 2).equals("<=")) {
-						if (isDouble(entry.getValue().get(c_entry.getKey()))
-								&& isDouble(c_entry.getValue().substring(2))) {
+                        } catch (JSONException e) {
 
-							if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) <= Float
-									.parseFloat(c_entry.getValue().substring(2))) {
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
 
-								result.put(entry.getKey(), entry.getValue());
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
 
-							}
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Project name must contain only alphanumeric characters");
+                            }
 
-						} else {
-							success = false;
-						}
-					} else if (c_entry.getValue().substring(0, 1).equals(">")) {
-						if (isDouble(entry.getValue().get(c_entry.getKey()))
-								&& isDouble(c_entry.getValue().substring(1))) {
+                        } catch (JSONException e) {
 
-							if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) > Float
-									.parseFloat(c_entry.getValue().substring(1))) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        DATA.get("_core").get("_projects").remove(parameters.get("_project"));
+                        DATA.remove(parameters.get("_project"));
 
-								result.put(entry.getKey(), entry.getValue());
+                        try {
 
-							}
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
 
-						} else {
-							success = false;
-						}
-					} else if (c_entry.getValue().substring(0, 1).equals("<")) {
-						if (isDouble(entry.getValue().get(c_entry.getKey()))
-								&& isDouble(c_entry.getValue().substring(1))) {
+                        } catch (JSONException e) {
 
-							if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) < Float
-									.parseFloat(c_entry.getValue().substring(1))) {
+                            e.printStackTrace();
+                        }
+                    }
 
-								result.put(entry.getKey(), entry.getValue());
+                    // END DEFINING ACTIONS
 
-							}
+                } else {
+                    try {
 
-						} else {
-							success = false;
-						}
-					} else {
+                        response.put("result", "ERR105");
+                        response.put("text", "Access denied");
 
-						if (entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue())) {
-							result.put(entry.getKey(), entry.getValue());
-						}
-					}
+                        if (API_EXPERIMENTAL) {
+                            response.put("info", "Unkown action");
+                        }
 
-				}
+                    } catch (JSONException e) {
 
-			}
+                        e.printStackTrace();
+                    }
+                }
 
-		}
+            }
 
-		if (success)
-			return result;
-		else
-			return new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
-	}
+            server.writeResponse(httpExchange, response.toString());
 
-	public static void filterAndDeleteContinent(String datamap, String continent, Map<String, String> params) {
+        }
+    }
 
-		for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(datamap).get(continent).entrySet()) {
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // HELPER METHODS
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-			for (Entry<String, String> c_entry : params.entrySet()) {
-				if (entry.getValue().get(c_entry.getKey()) != null) {
+    public static boolean hasPriviliges(String email, String projectcode, String privilege) {
 
-					if (c_entry.getValue().substring(0, 1).equals("!")) {
-						if (!entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue().substring(1))) {
-							DATA.get(datamap).get(continent).remove(entry.getKey());
-						}
-					} else if (c_entry.getValue().substring(0, 2).equals(">=")) {
-						if (isDouble(entry.getValue().get(c_entry.getKey()))
-								&& isDouble(c_entry.getValue().substring(2))) {
+        boolean access = true;
+        String priviliegecode;
 
-							if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) >= Float
-									.parseFloat(c_entry.getValue().substring(2))) {
+        if (DATA.get("_core").get("_user_privileges").get(email).get(projectcode) != null) {
 
-								DATA.get(datamap).get(continent).remove(entry.getKey());
+            priviliegecode = DATA.get("_core").get("_user_privileges").get(email).get(projectcode);
 
-							}
+            if (DATA.get("_core").get("_privileges").get(priviliegecode).get(privilege).equals("true")) {
+                access = true;
+            } else {
+                access = false;
+            }
 
-						}
-					} else if (c_entry.getValue().substring(0, 2).equals("<=")) {
-						if (isDouble(entry.getValue().get(c_entry.getKey()))
-								&& isDouble(c_entry.getValue().substring(2))) {
+        } else {
+            access = false;
+        }
 
-							if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) <= Float
-									.parseFloat(c_entry.getValue().substring(2))) {
+        return access;
 
-								DATA.get(datamap).get(continent).remove(entry.getKey());
+    }
 
-							}
+    public static boolean isValidEmail(String emailAddress) {
+        return emailAddress.contains(" ") == false && emailAddress.matches(".+@.+\\.[a-z]+");
+    }
 
-						}
-					} else if (c_entry.getValue().substring(0, 1).equals(">")) {
-						if (isDouble(entry.getValue().get(c_entry.getKey()))
-								&& isDouble(c_entry.getValue().substring(1))) {
+    public static ConcurrentHashMap<String, ConcurrentHashMap<String, String>> filterContinent(
+            ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, Map<String, String> params) {
 
-							if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) > Float
-									.parseFloat(c_entry.getValue().substring(1))) {
+        ConcurrentHashMap<String, ConcurrentHashMap<String, String>> result = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
+        boolean success = true;
 
-								DATA.get(datamap).get(continent).remove(entry.getKey());
+        for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
 
-							}
+            for (Entry<String, String> c_entry : params.entrySet()) {
+                if (entry.getValue().get(c_entry.getKey()) != null) {
 
-						}
-					} else if (c_entry.getValue().substring(0, 1).equals("<")) {
-						if (isDouble(entry.getValue().get(c_entry.getKey()))
-								&& isDouble(c_entry.getValue().substring(1))) {
+                    if (c_entry.getValue().substring(0, 1).equals("!")) {
+                        if (!entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue().substring(1))) {
+                            result.put(entry.getKey(), entry.getValue());
+                        }
+                    } else if (c_entry.getValue().substring(0, 2).equals(">=")) {
+                        if (isDouble(entry.getValue().get(c_entry.getKey()))
+                                && isDouble(c_entry.getValue().substring(2))) {
 
-							if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) < Float
-									.parseFloat(c_entry.getValue().substring(1))) {
+                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) >= Float
+                                    .parseFloat(c_entry.getValue().substring(2))) {
 
-								DATA.get(datamap).get(continent).remove(entry.getKey());
+                                result.put(entry.getKey(), entry.getValue());
 
-							}
+                            }
 
-						}
-					} else {
+                        } else {
+                            success = false;
+                        }
+                    } else if (c_entry.getValue().substring(0, 2).equals("<=")) {
+                        if (isDouble(entry.getValue().get(c_entry.getKey()))
+                                && isDouble(c_entry.getValue().substring(2))) {
 
-						if (entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue())) {
-							DATA.get(datamap).get(continent).remove(entry.getKey());
-						}
-					}
+                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) <= Float
+                                    .parseFloat(c_entry.getValue().substring(2))) {
 
-				}
+                                result.put(entry.getKey(), entry.getValue());
 
-			}
+                            }
 
-		}
-	}
+                        } else {
+                            success = false;
+                        }
+                    } else if (c_entry.getValue().substring(0, 1).equals(">")) {
+                        if (isDouble(entry.getValue().get(c_entry.getKey()))
+                                && isDouble(c_entry.getValue().substring(1))) {
 
-	public static boolean validateAPIMapKeys(Map<String, String> map) {
+                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) > Float
+                                    .parseFloat(c_entry.getValue().substring(1))) {
 
-		boolean auth = true;
+                                result.put(entry.getKey(), entry.getValue());
 
-		for (Entry<String, String> entry : map.entrySet()) {
-			if (!StringUtils.isAlphanumeric(entry.getKey())) {
-				auth = false;
-				break;
-			}
-		}
+                            }
 
-		return auth;
+                        } else {
+                            success = false;
+                        }
+                    } else if (c_entry.getValue().substring(0, 1).equals("<")) {
+                        if (isDouble(entry.getValue().get(c_entry.getKey()))
+                                && isDouble(c_entry.getValue().substring(1))) {
 
-	}
+                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) < Float
+                                    .parseFloat(c_entry.getValue().substring(1))) {
 
-	public static boolean validateAPIAuth(Map<String, String> map) {
+                                result.put(entry.getKey(), entry.getValue());
 
-		boolean auth = true;
+                            }
 
-		String CLIENT_HASH;
-		String SERVER_HASH;
+                        } else {
+                            success = false;
+                        }
+                    } else {
 
-		CLIENT_HASH = map.get("_auth");
-		SERVER_HASH = genAPIAuth(map);
+                        if (entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue())) {
+                            result.put(entry.getKey(), entry.getValue());
+                        }
+                    }
 
-		if (!CLIENT_HASH.equals(SERVER_HASH)) {
-			auth = false;
-		}
+                }
 
-		return auth;
+            }
 
-	}
+        }
 
-	public static boolean validateDatamapAuth(Map<String, String> map, String datamap) {
+        if (success)
+            return result;
+        else
+            return new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
+    }
 
-		boolean auth = true;
+    public static void filterAndDeleteContinent(String datamap, String continent, Map<String, String> params) {
 
-		String CLIENT_HASH;
-		String SERVER_HASH;
+        for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(datamap).get(continent).entrySet()) {
 
-		CLIENT_HASH = map.get("_auth");
-		SERVER_HASH = genDatamapAuth(map, datamap);
+            for (Entry<String, String> c_entry : params.entrySet()) {
+                if (entry.getValue().get(c_entry.getKey()) != null) {
 
-		if (!CLIENT_HASH.equals(SERVER_HASH)) {
-			auth = false;
-		}
+                    if (c_entry.getValue().substring(0, 1).equals("!")) {
+                        if (!entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue().substring(1))) {
+                            DATA.get(datamap).get(continent).remove(entry.getKey());
+                        }
+                    } else if (c_entry.getValue().substring(0, 2).equals(">=")) {
+                        if (isDouble(entry.getValue().get(c_entry.getKey()))
+                                && isDouble(c_entry.getValue().substring(2))) {
 
-		return auth;
+                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) >= Float
+                                    .parseFloat(c_entry.getValue().substring(2))) {
 
-	}
+                                DATA.get(datamap).get(continent).remove(entry.getKey());
 
-	public static String genAPIAuth(Map<String, String> map) {
+                            }
 
-		String SERVER_HASH = "";
-		String MAP_COCAT = "";
+                        }
+                    } else if (c_entry.getValue().substring(0, 2).equals("<=")) {
+                        if (isDouble(entry.getValue().get(c_entry.getKey()))
+                                && isDouble(c_entry.getValue().substring(2))) {
 
-		map.remove("_auth");
+                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) <= Float
+                                    .parseFloat(c_entry.getValue().substring(2))) {
 
-		MAP_COCAT = concMapValues(map);
-		SERVER_HASH = MD5(MAP_COCAT + API_CORE_KEY);
+                                DATA.get(datamap).get(continent).remove(entry.getKey());
 
-		return SERVER_HASH;
+                            }
 
-	}
+                        }
+                    } else if (c_entry.getValue().substring(0, 1).equals(">")) {
+                        if (isDouble(entry.getValue().get(c_entry.getKey()))
+                                && isDouble(c_entry.getValue().substring(1))) {
 
-	public static String genAPIAuth2(Map<String, String> map) {
+                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) > Float
+                                    .parseFloat(c_entry.getValue().substring(1))) {
 
-		String SERVER_HASH = "";
-		String MAP_COCAT = "";
+                                DATA.get(datamap).get(continent).remove(entry.getKey());
 
-		map.remove("_auth");
+                            }
 
-		MAP_COCAT = concMapValues(map);
-		SERVER_HASH = MAP_COCAT + API_CORE_KEY;
+                        }
+                    } else if (c_entry.getValue().substring(0, 1).equals("<")) {
+                        if (isDouble(entry.getValue().get(c_entry.getKey()))
+                                && isDouble(c_entry.getValue().substring(1))) {
 
-		return SERVER_HASH;
+                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) < Float
+                                    .parseFloat(c_entry.getValue().substring(1))) {
 
-	}
+                                DATA.get(datamap).get(continent).remove(entry.getKey());
 
-	public static String genDatamapAuth(Map<String, String> map, String datamap) {
+                            }
 
-		String SERVER_HASH = "";
-		String MAP_COCAT = "";
+                        }
+                    } else {
 
-		map.remove("_auth");
+                        if (entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue())) {
+                            DATA.get(datamap).get(continent).remove(entry.getKey());
+                        }
+                    }
 
-		MAP_COCAT = concMapValues(map);
-		SERVER_HASH = MD5(MAP_COCAT + DATA.get("_core").get("_projects").get(datamap).get("key"));
+                }
 
-		return SERVER_HASH;
+            }
 
-	}
+        }
+    }
 
-	public static String genDatamapAuth2(Map<String, String> map, String datamap) {
+    public static boolean validateAPIMapKeys(Map<String, String> map) {
 
-		String SERVER_HASH = "";
-		String MAP_COCAT = "";
+        boolean auth = true;
 
-		map.remove("_auth");
+        for (Entry<String, String> entry : map.entrySet()) {
+            if (!StringUtils.isAlphanumeric(entry.getKey())) {
+                auth = false;
+                break;
+            }
+        }
 
-		MAP_COCAT = concMapValues(map);
-		SERVER_HASH = MAP_COCAT + DATA.get("_core").get("_projects").get(datamap).get("key");
+        return auth;
 
-		return SERVER_HASH;
+    }
 
-	}
+    public static boolean validateAPIAuth(Map<String, String> map) {
 
-	public static String[] getContinentList(
-			ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> datamap) {
+        boolean auth = true;
 
-		String[] continents = new String[0];
+        String CLIENT_HASH;
+        String SERVER_HASH;
 
-		for (Entry<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> entry : datamap.entrySet()) {
-			continents = strArrAdd(continents, entry.getKey());
-		}
+        CLIENT_HASH = map.get("_auth");
+        SERVER_HASH = genAPIAuth(map);
 
-		return continents;
+        if (!CLIENT_HASH.equals(SERVER_HASH)) {
+            auth = false;
+        }
 
-	}
+        return auth;
 
-	public static boolean isDouble(String str) {
-		try {
-			Double.parseDouble(str);
-			return true;
-		} catch (NumberFormatException e) {
-			return false;
-		}
-	}
+    }
 
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	// GENERIC METHODS
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    public static boolean validateDatamapAuth(Map<String, String> map, String datamap) {
 
-	public static String concMapValues(Map<String, String> map) {
-		String cocat = "";
+        boolean auth = true;
 
-		Set<String> keySet = map.keySet();
-		ArrayList<String> list = new ArrayList<String>(keySet);
-		Collections.sort(list);
+        String CLIENT_HASH;
+        String SERVER_HASH;
 
-		for (int i = 0; i < list.size(); i++) {
-			cocat += map.get(list.get(i));
-		}
+        CLIENT_HASH = map.get("_auth");
+        SERVER_HASH = genDatamapAuth(map, datamap);
 
-		return cocat;
-	}
+        if (!CLIENT_HASH.equals(SERVER_HASH)) {
+            auth = false;
+        }
 
-	public static String MD5(String md5) {
-		try {
-			java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
-			byte[] array = md.digest(md5.getBytes());
-			StringBuffer sb = new StringBuffer();
-			for (int i = 0; i < array.length; ++i) {
-				sb.append(Integer.toHexString((array[i] & 0xFF) | 0x100).substring(1, 3));
-			}
-			return sb.toString();
-		} catch (java.security.NoSuchAlgorithmException e) {
-		}
-		return null;
-	}
+        return auth;
 
-	public static void writeResponse(HttpExchange httpExchange, String response) throws IOException {
-		Headers h = httpExchange.getResponseHeaders();
-		h.set("Access-Control-Allow-Origin", "*");
-		httpExchange.sendResponseHeaders(200, response.length());
-		OutputStream os = httpExchange.getResponseBody();
-		os.write(response.getBytes());
-		os.close();
-	}
+    }
 
-	static HashMap<String, String> getParameters(HttpExchange httpExchange) {
-		HashMap<String, String> parameters = new HashMap<>();
-		InputStream inputStream = httpExchange.getRequestBody();
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		byte[] buffer = new byte[2048];
-		int read = 0;
+    public static String genAPIAuth(Map<String, String> map) {
 
-		try {
-			while ((read = inputStream.read(buffer)) != -1) {
-				byteArrayOutputStream.write(buffer, 0, read);
-			}
-			String[] keyValuePairs = byteArrayOutputStream.toString().split("&");
-			for (String keyValuePair : keyValuePairs) {
-				String[] keyValue = keyValuePair.split("=");
-				if (keyValue.length != 2) {
-					continue;
-				}
-				parameters.put(URLDecoder.decode(keyValue[0], "UTF-8"), URLDecoder.decode(keyValue[1], "UTF-8"));
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return parameters;
-	}
+        String SERVER_HASH = "";
+        String MAP_COCAT = "";
 
-	public static Map<String, String> queryToMap(String query) {
-		Map<String, String> result = new HashMap<String, String>();
-		for (String param : query.split("&")) {
-			String pair[] = param.split("=");
-			if (pair.length > 1) {
-				result.put(pair[0], pair[1]);
-			} else {
-				result.put(pair[0], "");
-			}
-		}
-		return result;
-	}
+        map.remove("_auth");
 
-	public static Map<String, String> mapArrayToMapStr(Map<String, String[]> map) {
-		Map<String, String> result = new HashMap<String, String>();
-		for (Map.Entry<String, String[]> entry : map.entrySet()) {
-			result.put(entry.getKey(), Arrays.toString(entry.getValue()));
-		}
-		return result;
-	}
+        MAP_COCAT = concMapValues(map);
+        SERVER_HASH = MD5(MAP_COCAT + API_CORE_KEY);
 
-	static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-	static SecureRandom rnd = new SecureRandom();
+        return SERVER_HASH;
 
-	public static String randomString(int len) {
-		StringBuilder sb = new StringBuilder(len);
-		for (int i = 0; i < len; i++) {
-			sb.append(AB.charAt(rnd.nextInt(AB.length())));
-		}
-		return sb.toString();
-	}
+    }
 
-	public static String[] strArrAdd(String[] arr, String str) {
-		String[] newArr = new String[arr.length + 1];
+    public static String genAPIAuth2(Map<String, String> map) {
 
-		for (int i = 0; i < newArr.length; i++) {
-			if (i == arr.length) {
-				newArr[i] = str;
-			} else {
-				newArr[i] = arr[i];
-			}
-		}
+        String SERVER_HASH = "";
+        String MAP_COCAT = "";
 
-		return newArr;
-	}
+        map.remove("_auth");
 
-	public static String[] strArrRem(String[] arr, String str) {
-		String[] newArr;
+        MAP_COCAT = concMapValues(map);
+        SERVER_HASH = MAP_COCAT + API_CORE_KEY;
 
-		List<String> list = new ArrayList<String>(Arrays.asList(arr));
-		list.remove(str);
-		newArr = list.toArray(new String[0]);
-
-		return newArr;
-	}
-
-	static String get_SHA_512(String toHash, String salt) {
-		MessageDigest md = null;
-		byte[] hash = null;
-		try {
-			md = MessageDigest.getInstance("SHA-512");
-			hash = md.digest(toHash.getBytes("UTF-8"));
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-		return convertToHex(hash);
-	}
-
-	static String convertToHex(byte[] raw) {
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < raw.length; i++) {
-			sb.append(Integer.toString((raw[i] & 0xff) + 0x100, 16).substring(1));
-		}
-		return sb.toString();
-	}
-
-	public static double eval(final String str) {
-		return new Object() {
-			int pos = -1, ch;
-
-			void nextChar() {
-				ch = (++pos < str.length()) ? str.charAt(pos) : -1;
-			}
-
-			boolean eat(int charToEat) {
-				while (ch == ' ') {
-					nextChar();
-				}
-				if (ch == charToEat) {
-					nextChar();
-					return true;
-				}
-				return false;
-			}
-
-			double parse() {
-				nextChar();
-				double x = parseExpression();
-				if (pos < str.length()) {
-					throw new RuntimeException("Unexpected: " + (char) ch);
-				}
-				return x;
-			}
-
-			// Grammar:
-			// expression = term | expression `+` term | expression `-` term
-			// term = factor | term `*` factor | term `/` factor
-			// factor = `+` factor | `-` factor | `(` expression `)`
-			// | number | functionName factor | factor `^` factor
-			double parseExpression() {
-				double x = parseTerm();
-				for (;;) {
-					if (eat('+')) {
-						x += parseTerm(); // addition
-					} else if (eat('-')) {
-						x -= parseTerm(); // subtraction
-					} else {
-						return x;
-					}
-				}
-			}
-
-			double parseTerm() {
-				double x = parseFactor();
-				for (;;) {
-					if (eat('*')) {
-						x *= parseFactor(); // multiplication
-					} else if (eat('/')) {
-						x /= parseFactor(); // division
-					} else {
-						return x;
-					}
-				}
-			}
-
-			double parseFactor() {
-				if (eat('+')) {
-					return parseFactor(); // unary plus
-				}
-				if (eat('-')) {
-					return -parseFactor(); // unary minus
-				}
-				double x;
-				int startPos = this.pos;
-				if (eat('(')) { // parentheses
-					x = parseExpression();
-					eat(')');
-				} else if ((ch >= '0' && ch <= '9') || ch == '.') { // numbers
-					while ((ch >= '0' && ch <= '9') || ch == '.') {
-						nextChar();
-					}
-					x = Double.parseDouble(str.substring(startPos, this.pos));
-				} else if (ch >= 'a' && ch <= 'z') { // functions
-					while (ch >= 'a' && ch <= 'z') {
-						nextChar();
-					}
-					String func = str.substring(startPos, this.pos);
-					x = parseFactor();
-					if (func.equals("sqrt")) {
-						x = Math.sqrt(x);
-					} else if (func.equals("sin")) {
-						x = Math.sin(Math.toRadians(x));
-					} else if (func.equals("cos")) {
-						x = Math.cos(Math.toRadians(x));
-					} else if (func.equals("tan")) {
-						x = Math.tan(Math.toRadians(x));
-					} else {
-						throw new RuntimeException("Unknown function: " + func);
-					}
-				} else {
-					throw new RuntimeException("Unexpected: " + (char) ch);
-				}
-
-				if (eat('^')) {
-					x = Math.pow(x, parseFactor()); // exponentiation
-				}
-				return x;
-			}
-		}.parse();
-	}
-
-	public static List<String> MergeUniqueKeys(List<String> Keys, List<String> Map) {
-		List<String> MapCopy = new ArrayList<>(Map);
-		MapCopy.removeAll(Keys);
-		Keys.addAll(MapCopy);
-		return Keys;
-	}
-
-	public static List<String> MultiMergeUniqueKeys(List<String> Keys, HashMap<String, HashMap<String, String>> Map) {
-		List<String> innerMap = new ArrayList<>();
-		List<String> MainKeys = new ArrayList<>(Map.keySet());
-		for (String innerKey : MainKeys) {
-			innerMap = new ArrayList<>(Map.get(innerKey).keySet());
-			innerMap.removeAll(Keys);
-			Keys.addAll(innerMap);
-		}
-		return Keys;
-	}
-
-	public static int Random(int min, int max) {
-		return ThreadLocalRandom.current().nextInt(min, max);
-	}
-
-	public static double RandomDouble(int rangeMin, int rangeMax) {
-		Random r = new Random();
-		return rangeMin + (rangeMax - rangeMin) * r.nextDouble();
-	}
+        return SERVER_HASH;
+
+    }
+
+    public static String genDatamapAuth(Map<String, String> map, String datamap) {
+
+        String SERVER_HASH = "";
+        String MAP_COCAT = "";
+
+        map.remove("_auth");
+
+        MAP_COCAT = concMapValues(map);
+        SERVER_HASH = MD5(MAP_COCAT + DATA.get("_core").get("_projects").get(datamap).get("key"));
+
+        return SERVER_HASH;
+
+    }
+
+    public static String genDatamapAuth2(Map<String, String> map, String datamap) {
+
+        String SERVER_HASH = "";
+        String MAP_COCAT = "";
+
+        map.remove("_auth");
+
+        MAP_COCAT = concMapValues(map);
+        SERVER_HASH = MAP_COCAT + DATA.get("_core").get("_projects").get(datamap).get("key");
+
+        return SERVER_HASH;
+
+    }
+
+    public static String[] getContinentList(
+            ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> datamap) {
+
+        String[] continents = new String[0];
+
+        for (Entry<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> entry : datamap.entrySet()) {
+            continents = strArrAdd(continents, entry.getKey());
+        }
+
+        return continents;
+
+    }
+
+    public static boolean isDouble(String str) {
+        try {
+            Double.parseDouble(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // GENERIC METHODS
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    public static String concMapValues(Map<String, String> map) {
+        String cocat = "";
+
+        Set<String> keySet = map.keySet();
+        ArrayList<String> list = new ArrayList<String>(keySet);
+        Collections.sort(list);
+
+        for (int i = 0; i < list.size(); i++) {
+            cocat += map.get(list.get(i));
+        }
+
+        return cocat;
+    }
+
+    public static String MD5(String md5) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+            byte[] array = md.digest(md5.getBytes());
+            StringBuffer sb = new StringBuffer();
+            for (int i = 0; i < array.length; ++i) {
+                sb.append(Integer.toHexString((array[i] & 0xFF) | 0x100).substring(1, 3));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+        }
+        return null;
+    }
+
+    public static void writeResponse(HttpExchange httpExchange, String response) throws IOException {
+        Headers h = httpExchange.getResponseHeaders();
+        h.set("Access-Control-Allow-Origin", "*");
+        httpExchange.sendResponseHeaders(200, response.length());
+        OutputStream os = httpExchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+    }
+
+    static HashMap<String, String> getParameters(HttpExchange httpExchange) {
+        HashMap<String, String> parameters = new HashMap<>();
+        InputStream inputStream = httpExchange.getRequestBody();
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[2048];
+        int read = 0;
+
+        try {
+            while ((read = inputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, read);
+            }
+            String[] keyValuePairs = byteArrayOutputStream.toString().split("&");
+            for (String keyValuePair : keyValuePairs) {
+                String[] keyValue = keyValuePair.split("=");
+                if (keyValue.length != 2) {
+                    continue;
+                }
+                parameters.put(URLDecoder.decode(keyValue[0], "UTF-8"), URLDecoder.decode(keyValue[1], "UTF-8"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return parameters;
+    }
+
+    public static Map<String, String> queryToMap(String query) {
+        Map<String, String> result = new HashMap<String, String>();
+        for (String param : query.split("&")) {
+            String pair[] = param.split("=");
+            if (pair.length > 1) {
+                result.put(pair[0], pair[1]);
+            } else {
+                result.put(pair[0], "");
+            }
+        }
+        return result;
+    }
+
+    public static Map<String, String> mapArrayToMapStr(Map<String, String[]> map) {
+        Map<String, String> result = new HashMap<String, String>();
+        for (Map.Entry<String, String[]> entry : map.entrySet()) {
+            result.put(entry.getKey(), Arrays.toString(entry.getValue()));
+        }
+        return result;
+    }
+
+    static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static SecureRandom rnd = new SecureRandom();
+
+    public static String randomString(int len) {
+        StringBuilder sb = new StringBuilder(len);
+        for (int i = 0; i < len; i++) {
+            sb.append(AB.charAt(rnd.nextInt(AB.length())));
+        }
+        return sb.toString();
+    }
+
+    public static String[] strArrAdd(String[] arr, String str) {
+        String[] newArr = new String[arr.length + 1];
+
+        for (int i = 0; i < newArr.length; i++) {
+            if (i == arr.length) {
+                newArr[i] = str;
+            } else {
+                newArr[i] = arr[i];
+            }
+        }
+
+        return newArr;
+    }
+
+    public static String[] strArrRem(String[] arr, String str) {
+        String[] newArr;
+
+        List<String> list = new ArrayList<String>(Arrays.asList(arr));
+        list.remove(str);
+        newArr = list.toArray(new String[0]);
+
+        return newArr;
+    }
+
+    static String get_SHA_512(String toHash, String salt) {
+        MessageDigest md = null;
+        byte[] hash = null;
+        try {
+            md = MessageDigest.getInstance("SHA-512");
+            hash = md.digest(toHash.getBytes("UTF-8"));
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return convertToHex(hash);
+    }
+
+    static String convertToHex(byte[] raw) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < raw.length; i++) {
+            sb.append(Integer.toString((raw[i] & 0xff) + 0x100, 16).substring(1));
+        }
+        return sb.toString();
+    }
+
+    public static double eval(final String str) {
+        return new Object() {
+            int pos = -1, ch;
+
+            void nextChar() {
+                ch = (++pos < str.length()) ? str.charAt(pos) : -1;
+            }
+
+            boolean eat(int charToEat) {
+                while (ch == ' ') {
+                    nextChar();
+                }
+                if (ch == charToEat) {
+                    nextChar();
+                    return true;
+                }
+                return false;
+            }
+
+            double parse() {
+                nextChar();
+                double x = parseExpression();
+                if (pos < str.length()) {
+                    throw new RuntimeException("Unexpected: " + (char) ch);
+                }
+                return x;
+            }
+
+            // Grammar:
+            // expression = term | expression `+` term | expression `-` term
+            // term = factor | term `*` factor | term `/` factor
+            // factor = `+` factor | `-` factor | `(` expression `)`
+            // | number | functionName factor | factor `^` factor
+            double parseExpression() {
+                double x = parseTerm();
+                for (; ; ) {
+                    if (eat('+')) {
+                        x += parseTerm(); // addition
+                    } else if (eat('-')) {
+                        x -= parseTerm(); // subtraction
+                    } else {
+                        return x;
+                    }
+                }
+            }
+
+            double parseTerm() {
+                double x = parseFactor();
+                for (; ; ) {
+                    if (eat('*')) {
+                        x *= parseFactor(); // multiplication
+                    } else if (eat('/')) {
+                        x /= parseFactor(); // division
+                    } else {
+                        return x;
+                    }
+                }
+            }
+
+            double parseFactor() {
+                if (eat('+')) {
+                    return parseFactor(); // unary plus
+                }
+                if (eat('-')) {
+                    return -parseFactor(); // unary minus
+                }
+                double x;
+                int startPos = this.pos;
+                if (eat('(')) { // parentheses
+                    x = parseExpression();
+                    eat(')');
+                } else if ((ch >= '0' && ch <= '9') || ch == '.') { // numbers
+                    while ((ch >= '0' && ch <= '9') || ch == '.') {
+                        nextChar();
+                    }
+                    x = Double.parseDouble(str.substring(startPos, this.pos));
+                } else if (ch >= 'a' && ch <= 'z') { // functions
+                    while (ch >= 'a' && ch <= 'z') {
+                        nextChar();
+                    }
+                    String func = str.substring(startPos, this.pos);
+                    x = parseFactor();
+                    if (func.equals("sqrt")) {
+                        x = Math.sqrt(x);
+                    } else if (func.equals("sin")) {
+                        x = Math.sin(Math.toRadians(x));
+                    } else if (func.equals("cos")) {
+                        x = Math.cos(Math.toRadians(x));
+                    } else if (func.equals("tan")) {
+                        x = Math.tan(Math.toRadians(x));
+                    } else {
+                        throw new RuntimeException("Unknown function: " + func);
+                    }
+                } else {
+                    throw new RuntimeException("Unexpected: " + (char) ch);
+                }
+
+                if (eat('^')) {
+                    x = Math.pow(x, parseFactor()); // exponentiation
+                }
+                return x;
+            }
+        }.parse();
+    }
+
+    public static List<String> MergeUniqueKeys(List<String> Keys, List<String> Map) {
+        List<String> MapCopy = new ArrayList<>(Map);
+        MapCopy.removeAll(Keys);
+        Keys.addAll(MapCopy);
+        return Keys;
+    }
+
+    public static List<String> MultiMergeUniqueKeys(List<String> Keys, HashMap<String, HashMap<String, String>> Map) {
+        List<String> innerMap = new ArrayList<>();
+        List<String> MainKeys = new ArrayList<>(Map.keySet());
+        for (String innerKey : MainKeys) {
+            innerMap = new ArrayList<>(Map.get(innerKey).keySet());
+            innerMap.removeAll(Keys);
+            Keys.addAll(innerMap);
+        }
+        return Keys;
+    }
+
+    public static int Random(int min, int max) {
+        return ThreadLocalRandom.current().nextInt(min, max);
+    }
+
+    public static double RandomDouble(int rangeMin, int rangeMax) {
+        Random r = new Random();
+        return rangeMin + (rangeMax - rangeMin) * r.nextDouble();
+    }
 
 }
