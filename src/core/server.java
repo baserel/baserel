@@ -106,7 +106,7 @@ public class server {
                     }
                 }
             });
-            // TODO Handlers Contexts
+            // TODO Handlers contexts
             httpsServer.createContext("/adm", new AdmHandler());
             httpsServer.createContext("/put", new PutHandler());
             httpsServer.createContext("/get", new GetHandler());
@@ -122,7 +122,7 @@ public class server {
 
         }
 
-        // TODO Pre-Running
+        // TODO Pre-running
 
         ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> temp_core = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
         ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
@@ -166,13 +166,13 @@ public class server {
 
     }
 
-    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // @@@@@
     // HANDLERS
-    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // @@@@@
 
-    // TODO Put Handler
+    //TODO Starting defining handlers
 
-    static class PutHandler implements HttpHandler {
+    static class PutHandler implements HttpHandler { //TODO Handler
 
         public void handle(HttpExchange httpExchange) throws IOException {
 
@@ -380,9 +380,7 @@ public class server {
 
     }
 
-    //TODO Get Handler
-
-    static class GetHandler implements HttpHandler {
+    static class GetHandler implements HttpHandler { //TODO Handler
 
         public void handle(HttpExchange httpExchange) throws IOException {
 
@@ -501,9 +499,7 @@ public class server {
         }
     }
 
-    //TODO Del Handler
-
-    static class DelHandler implements HttpHandler {
+    static class DelHandler implements HttpHandler { //TODO Handler
 
         public void handle(HttpExchange httpExchange) throws IOException {
 
@@ -657,9 +653,7 @@ public class server {
         }
     }
 
-    //TODO Adm Handler
-
-    static class AdmHandler implements HttpHandler {
+    static class AdmHandler implements HttpHandler { //TODO Handler
 
         public void handle(HttpExchange httpExchange) throws IOException {
 
@@ -714,14 +708,10 @@ public class server {
                 }
             } else {
 
-                // Start Defining actions
+                //TODO Starting defining actions
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-                //TODO Action : Create Project
-
-                if (parameters.get("_action").equals("create_project")) { // create_project command
-                    if (parameters.get("_project") == null) {
+                if (parameters.get("_action").equals("create_project")) {  //TODO command action
+                    if (parameters.get("_name") == null) {
 
                         try {
 
@@ -729,7 +719,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", "_name is null");
                             }
 
                         } catch (JSONException e) {
@@ -768,16 +758,15 @@ public class server {
                             e.printStackTrace();
                         }
                     } else {
+                        String project_code = randomString(32);
+                        String privileges_code = randomString(32);
 
-                        DATA.put(parameters.get("_project"), temp_table);
+                        DATA.put(project_code, temp_table);
 
                         temp_map = new ConcurrentHashMap<String, String>();
 
-                        temp_map.put("name", parameters.get("_project"));
+                        temp_map.put("name", parameters.get("_name"));
                         temp_map.put("security", "false");
-
-                        String project_code = randomString(32);
-                        String privileges_code = randomString(32);
 
                         DATA.get("_core").get("_projects").put(project_code, temp_map);
 
@@ -819,9 +808,9 @@ public class server {
 
                     }
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
                 } else if (parameters.get("_action").equals("reset_project_key")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
                     if (parameters.get("_project") == null) {
 
@@ -869,11 +858,9 @@ public class server {
 
                     }
 
-                    //TODO Action : Create User
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                } else if (parameters.get("_action").equals("create_user")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("create_user")) { //TODO command action
+
 
                     if (parameters.get("_name") == null) {
 
@@ -1058,11 +1045,9 @@ public class server {
                         }
                     }
 
-                    //TODO Action : Edit User
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                } else if (parameters.get("_action").equals("edit_user")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("edit_user")) { //TODO command action
+
 
                     if (parameters.get("_email") == null) {
 
@@ -1204,11 +1189,9 @@ public class server {
                         }
                     }
 
-                    //TODO Action : Get User
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                } else if (parameters.get("_action").equals("get_user")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("get_user")) { //TODO command action
+
 
                     if (parameters.get("_email") == null) {
 
@@ -1265,11 +1248,9 @@ public class server {
 
                     }
 
-                    //TODO Action : Delete User
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                } else if (parameters.get("_action").equals("delete_user")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("delete_user")) { //TODO command action
+
 
                     if (parameters.get("_email") == null) {
 
@@ -1326,19 +1307,14 @@ public class server {
 
                     }
 
-                    //TODO Action : Get All Users
+                } else if (parameters.get("_action").equals("get_all_users")) { //TODO command action
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                } else if (parameters.get("_action").equals("get_all_users")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
                     response = new JSONObject(DATA.get("_core").get("_users"));
 
-                    //TODO Action : Create Project Table
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                } else if (parameters.get("_action").equals("create_project_table")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("create_project_table")) { //TODO command action
+
 
                     if (parameters.get("_project") == null) {
 
@@ -1446,9 +1422,9 @@ public class server {
 
                     }
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
                 } else if (parameters.get("_action").equals("delete_project_table")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
                     if (parameters.get("_project") == null) {
 
@@ -1539,11 +1515,9 @@ public class server {
                         }
                     }
 
-                    //TODO Action : Get User Projects
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                } else if (parameters.get("_action").equals("get_user_projects")) {
-//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                } else if (parameters.get("_action").equals("get_user_projects")) { //TODO command action
+	
 
                     if (parameters.get("_email") == null) {
 
@@ -1586,9 +1560,9 @@ public class server {
                         response = new JSONObject(temp_keymap);
                     }
 
-//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	
                 } else if (parameters.get("_action").equals("get_project_info")) {
-//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	
 
                     if (parameters.get("_project") == null) {
 
@@ -1641,9 +1615,9 @@ public class server {
                         response = new JSONObject(temp_map);
                     }
 
-//					@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	
                 } else if (parameters.get("_action").equals("get_table_info")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
                     if (parameters.get("_project") == null) {
 
@@ -1728,9 +1702,9 @@ public class server {
 
                     }
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
                 } else if (parameters.get("_action").equals("get_project_tables")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
                     if (parameters.get("_project") == null) {
 
@@ -1785,9 +1759,9 @@ public class server {
                         }
                     }
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
                 } else if (parameters.get("_action").equals("set_project_security")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
                     if (parameters.get("_project") == null) {
 
@@ -1881,9 +1855,9 @@ public class server {
                         }
                     }
 
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
                 } else if (parameters.get("_action").equals("delete_project")) {
-//				@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
                     if (parameters.get("_project") == null) {
 
@@ -1969,9 +1943,9 @@ public class server {
         }
     }
 
-    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // @@@@@
     // HELPER METHODS
-    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // @@@@@
 
     public static boolean hasPriviliges(String email, String projectcode, String privilege) {
 
@@ -2292,9 +2266,9 @@ public class server {
         }
     }
 
-    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // @@@@@
     // GENERIC METHODS
-    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    // @@@@@
 
     public static String concMapValues(Map<String, String> map) {
         String cocat = "";
