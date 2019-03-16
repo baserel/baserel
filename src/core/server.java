@@ -135,6 +135,7 @@ public class server {
             temp_core.put("_project_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
             temp_core.put("_user_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
             temp_core.put("_project_tables", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_user_fingerprints", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
 
             DATA.put("_core", temp_core);
 
@@ -1029,6 +1030,8 @@ public class server {
                         }
                     } else {
 
+                        String fingerprint = randomString(32);
+
                         temp_map = new ConcurrentHashMap<String, String>();
 
                         temp_map.put("name", parameters.get("_name"));
@@ -1036,9 +1039,15 @@ public class server {
                         temp_map.put("pass", parameters.get("_pass"));
                         temp_map.put("verified", parameters.get("_verified"));
                         temp_map.put("super", parameters.get("_super"));
-                        temp_map.put("fingerprint", randomString(32));
+                        temp_map.put("fingerprint", fingerprint);
 
                         DATA.get("_core").get("_users").put(parameters.get("_email"), temp_map);
+
+                        temp_map = new ConcurrentHashMap<String, String>();
+
+                        temp_map.put("email", parameters.get("_email"));
+
+                        DATA.get("_core").get("_user_fingerprints").put(fingerprint, temp_map);
 
                         try {
                             response.put("result", "SUC100");
@@ -1296,8 +1305,14 @@ public class server {
 
                     } else {
 
-                        DATA.get("_core").get("_users").remove(parameters.get("_email"));
+                        DATA.get("_core").get("_user_fingerprints").remove(DATA.get("_core").get("_users").get(parameters.get("_email")).get("fingerprint"));
+                        for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get("_core").get("_project_privileges").entrySet()) {
+                            if(entry.getValue().get(parameters.get("_email")) != null){
+                                DATA.get("_core").get("_project_privileges").get(entry.getKey()).remove(parameters.get("_email"));
+                            }
+                        }
                         DATA.get("_core").get("_user_privileges").remove(parameters.get("_email"));
+                        DATA.get("_core").get("_users").remove(parameters.get("_email"));
 
                         try {
 
@@ -1967,7 +1982,7 @@ public class server {
 
             priviliegecode = DATA.get("_core").get("_user_privileges").get(email).get(projectcode);
 
-            if (DATA.get("_core").get("_privileges").get(priviliegecode).get(privilege).equals("true")) {
+            if (DATA.get("_core").get("_privileges").get(priviliegecode).get(privilege).equals("true") || privilege.equals("any")) {
                 access = true;
             } else {
                 access = false;
