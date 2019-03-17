@@ -223,7 +223,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "Project name does not exists");
+                        response.put("info", "project does not exists");
                     }
 
                 } catch (JSONException e) {
@@ -262,7 +262,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Table name does not exists");
+                                response.put("info", "table does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -432,7 +432,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name does not exists");
+                                response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -470,7 +470,7 @@ public class server {
                                     response.put("text", "Access denied");
 
                                     if (API_EXPERIMENTAL) {
-                                        response.put("info", "Table name does not exists");
+                                        response.put("info", "table does not exists");
                                     }
 
                                 } catch (JSONException e) {
@@ -551,7 +551,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name does not exists");
+                                response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -589,7 +589,7 @@ public class server {
                                     response.put("text", "Access denied");
 
                                     if (API_EXPERIMENTAL) {
-                                        response.put("info", "Table name does not exists");
+                                        response.put("info", "table does not exists");
                                     }
 
                                 } catch (JSONException e) {
@@ -662,6 +662,7 @@ public class server {
             ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> temp_table = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
             ConcurrentHashMap<String, ConcurrentHashMap<String, String>> temp_keymap = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
             ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
+            ConcurrentHashMap<String, String> temp_map2 = new ConcurrentHashMap<String, String>();
 
             if (parameters.get("_auth") == null) {
                 try {
@@ -816,7 +817,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "Project name does not exists");
+                                // response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -830,7 +831,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "Project name does not exists");
+                                // response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -844,7 +845,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "Project name does not exists");
+                                // response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -858,7 +859,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "Project name does not exists");
+                                // response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -972,7 +973,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "Project name does not exists");
+                                // response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -986,7 +987,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "Project name does not exists");
+                                // response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -1002,7 +1003,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "Project name does not exists");
+                                // response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -1271,6 +1272,7 @@ public class server {
 
                             response.put("result", "SUC100");
                             response.put("text", "Done");
+                            response.put("project", project_code);
 
                         } catch (JSONException e) {
 
@@ -1280,10 +1282,42 @@ public class server {
                     }
 
 
-                } else if (parameters.get("_action").equals("get_project_info")) { //TODO command action
+                } else if (parameters.get("_action").equals("get_project")) { //TODO command action
 
 
-                    if (parameters.get("_project") == null) {
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
 
                         try {
 
@@ -1306,7 +1340,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name does not exists");
+                                response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -1320,7 +1354,21 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name must contain only alphanumeric characters");
+                                response.put("info", "project must contain only alphanumeric characters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "any")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "You do not have the privileges to perform this action");
                             }
 
                         } catch (JSONException e) {
@@ -1330,12 +1378,22 @@ public class server {
                     } else {
 
                         temp_map = DATA.get("_core").get("_projects").get(parameters.get("_project"));
+                        temp_map.put("tables_count", (DATA.get("_core").get("_project_tables").get(parameters.get("_project")) != null ? ""+DATA.get("_core").get("_project_tables").get(parameters.get("_project")).size() : "0"));
+
+                        temp_map2 = DATA.get("_core").get("_privileges").get(DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).get(parameters.get("_project")));
+
+                        temp_map.put("perm_get", temp_map2.get("get"));
+                        temp_map.put("perm_put", temp_map2.get("put"));
+                        temp_map.put("perm_del", temp_map2.get("del"));
+                        temp_map.put("perm_adm", temp_map2.get("adm"));
+                        temp_map.put("perm_cmd", temp_map2.get("cmd"));
 
                         response = new JSONObject(temp_map);
+
                     }
 
 
-                } else if (parameters.get("_action").equals("get_user_projects")) { //TODO command action
+                } else if (parameters.get("_action").equals("get_projects")) { //TODO command action
 
 
                     if (parameters.get("_email") == null) {
@@ -1372,8 +1430,13 @@ public class server {
 
                     } else {
 
-                        for (Entry<String, String> entry : DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).entrySet()) {
-                            temp_keymap.put(entry.getKey(), DATA.get("_core").get("_projects").get(entry.getKey()));
+                        if(DATA.get("_core").get("_user_privileges").get(parameters.get("_email")) != null) {
+                            for (Entry<String, String> entry : DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).entrySet()) {
+                                temp_keymap.put(entry.getKey(), DATA.get("_core").get("_projects").get(entry.getKey()));
+                                if (DATA.get("_core").get("_project_tables").get(entry.getKey()) != null)
+                                    temp_keymap.get(entry.getKey()).put("tables_count", "" + DATA.get("_core").get("_project_tables").get(entry.getKey()).size());
+                                else temp_keymap.get(entry.getKey()).put("tables_count", "0");
+                            }
                         }
 
                         response = new JSONObject(temp_keymap);
@@ -1383,7 +1446,39 @@ public class server {
                 } else if (parameters.get("_action").equals("delete_project")) { //TODO command action
 
 
-                    if (parameters.get("_project") == null) {
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
 
                         try {
 
@@ -1406,7 +1501,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name does not exists");
+                                response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -1420,7 +1515,21 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name must contain only alphanumeric characters");
+                                response.put("info", "project must contain only alphanumeric characters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "You do not have the privileges to perform this action");
                             }
 
                         } catch (JSONException e) {
@@ -1428,8 +1537,19 @@ public class server {
                             e.printStackTrace();
                         }
                     } else {
+
                         DATA.get("_core").get("_projects").remove(parameters.get("_project"));
+
                         DATA.remove(parameters.get("_project"));
+
+                        for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get("_core").get("_privileges").entrySet()) {
+                            if(entry.getValue().get("project").equals(parameters.get("_project"))) DATA.get("_core").get("_privileges").remove(entry.getKey());
+                        }
+
+
+                        DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).remove(parameters.get("_project"));
+                        DATA.get("_core").get("_project_privileges").remove(parameters.get("_project"));
+                        DATA.get("_core").get("_tables").remove(parameters.get("_project"));
 
                         try {
 
@@ -1444,10 +1564,42 @@ public class server {
 
                     // END DEFINING ACTIONS
 
-                } else if (parameters.get("_action").equals("create_project_table")) { //TODO command action
+                } else if (parameters.get("_action").equals("create_table")) { //TODO command action
 
 
-                    if (parameters.get("_project") == null) {
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
 
                         try {
 
@@ -1470,7 +1622,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name does not exists");
+                                response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -1498,7 +1650,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name must contain only alphanumeric characters");
+                                response.put("info", "project must contain only alphanumeric characters");
                             }
 
                         } catch (JSONException e) {
@@ -1531,8 +1683,7 @@ public class server {
                         temp_map.put("name", parameters.get("_name"));
 
 
-                        DATA.get("_core").get("_tables")
-                                .put(parameters.get("_project") + "_" + table_code, temp_map);
+                        DATA.get("_core").get("_tables").put(parameters.get("_project") + "_" + table_code, temp_map);
 
                         if (DATA.get("_core").get("_project_tables").get(parameters.get("_project")) == null) {
                             temp_map = new ConcurrentHashMap<String, String>();
@@ -1545,6 +1696,7 @@ public class server {
 
                             response.put("result", "SUC100");
                             response.put("text", "Done");
+                            response.put("table", table_code);
 
                         } catch (JSONException e) {
 
@@ -1554,10 +1706,42 @@ public class server {
                     }
 
 
-                } else if (parameters.get("_action").equals("delete_project_table")) { //TODO command action
+                } else if (parameters.get("_action").equals("delete_table")) { //TODO command action
 
 
-                    if (parameters.get("_project") == null) {
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
 
                         try {
 
@@ -1580,7 +1764,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name does not exists");
+                                response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -1608,7 +1792,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name must contain only alphanumeric characters");
+                                response.put("info", "project must contain only alphanumeric characters");
                             }
 
                         } catch (JSONException e) {
@@ -1622,7 +1806,21 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Table name does not exists");
+                                response.put("info", "table does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "You do not have the privileges to perform this action");
                             }
 
                         } catch (JSONException e) {
@@ -1631,8 +1829,8 @@ public class server {
                         }
                     } else {
 
-                        DATA.get("_core").get("_tables")
-                                .remove(parameters.get("_project") + "_" + parameters.get("_table"));
+                        DATA.get("_core").get("_tables").remove(parameters.get("_project") + "_" + parameters.get("_table"));
+                        DATA.get("_core").get("_project_tables").get(parameters.get("_project")).remove(parameters.get("_table"));
                         DATA.get(parameters.get("_project")).remove(parameters.get("_table"));
 
                         try {
@@ -1647,10 +1845,42 @@ public class server {
                     }
 
 
-                } else if (parameters.get("_action").equals("get_table_info")) { //TODO command action
+                } else if (parameters.get("_action").equals("get_table")) { //TODO command action
 
 
-                    if (parameters.get("_project") == null) {
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
 
                         try {
 
@@ -1689,7 +1919,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name does not exists");
+                                response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -1703,7 +1933,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name must contain only alphanumeric characters");
+                                response.put("info", "project must contain only alphanumeric characters");
                             }
 
                         } catch (JSONException e) {
@@ -1717,7 +1947,21 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Table name does not exists");
+                                response.put("info", "table does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "any")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "You do not have the privileges to perform this action");
                             }
 
                         } catch (JSONException e) {
@@ -1726,18 +1970,52 @@ public class server {
                         }
                     } else {
 
-                        temp_map = DATA.get("_core").get("_tables")
-                                .get(parameters.get("_project") + "_" + parameters.get("_table"));
+                        temp_map = DATA.get("_core").get("_tables").get(parameters.get("_project") + "_" + parameters.get("_table"));
+
+                        if(DATA.get(parameters.get("_project")).get(parameters.get("_table")) != null) temp_map.put("records_count", ""+DATA.get(parameters.get("_project")).get(parameters.get("_table")).size());
+                        else temp_map.put("records_count", "0");
 
                         response = new JSONObject(temp_map);
 
                     }
 
 
-                } else if (parameters.get("_action").equals("get_project_tables")) { //TODO command action
+                } else if (parameters.get("_action").equals("get_tables")) { //TODO command action
 
 
-                    if (parameters.get("_project") == null) {
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
 
                         try {
 
@@ -1760,7 +2038,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name does not exists");
+                                response.put("info", "project does not exists");
                             }
 
                         } catch (JSONException e) {
@@ -1774,7 +2052,21 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Project name must contain only alphanumeric characters");
+                                response.put("info", "project must contain only alphanumeric characters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "any")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "You do not have the privileges to perform this action");
                             }
 
                         } catch (JSONException e) {
@@ -1783,8 +2075,17 @@ public class server {
                         }
                     } else {
 
-                        for (Entry<String, String> entry : DATA.get("_core").get("_project_tables").get(parameters.get("_project")).entrySet()) {
-                            temp_keymap.put(entry.getKey(), DATA.get("_core").get("_tables").get(parameters.get("_project")+"_"+entry.getKey()));
+                        if(DATA.get("_core").get("_project_tables").get(parameters.get("_project")) != null){
+                            for (Entry<String, String> entry : DATA.get("_core").get("_project_tables").get(parameters.get("_project")).entrySet()) {
+
+                                temp_keymap.put(entry.getKey(), DATA.get("_core").get("_tables").get(parameters.get("_project") + "_" + entry.getKey()));
+                                if (DATA.get(parameters.get("_project")).get(entry.getKey()) != null) {
+                                    temp_keymap.get(entry.getKey()).put("records_count", "" + DATA.get(parameters.get("_project")).get(entry.getKey()).size());
+                                } else {
+                                    temp_keymap.get(entry.getKey()).put("records_count", "0");
+                                }
+
+                            }
                         }
 
                         response = new JSONObject(temp_keymap);
@@ -1828,7 +2129,11 @@ public class server {
 
             priviliegecode = DATA.get("_core").get("_user_privileges").get(email).get(projectcode);
 
-            if (DATA.get("_core").get("_privileges").get(priviliegecode).get(privilege).equals("true") || privilege.equals("any")) {
+            if(privilege.equals("any")){
+                access = true;
+            }else if(DATA.get("_core").get("_privileges").get(priviliegecode).get(privilege) == null){
+                access = false;
+            }else if (DATA.get("_core").get("_privileges").get(priviliegecode).get(privilege).equals("true")) {
                 access = true;
             } else {
                 access = false;
