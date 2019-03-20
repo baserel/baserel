@@ -1702,7 +1702,7 @@ public class server {
 
 
                 } else if (parameters.get("_action").equals("create_project")) {  //TODO command action
-                    if (parameters.get("_name") == null) {
+                    if (parameters.get("_name") == null || parameters.get("_name") == "") {
 
                         try {
 
@@ -2043,7 +2043,7 @@ public class server {
 
                             e.printStackTrace();
                         }
-                    } else if (parameters.get("_name") == null || parameters.get("_security") == null || (!parameters.get("_security").equals("true") && !parameters.get("_security").equals("false"))) {
+                    } else if (parameters.get("_name") == null || parameters.get("_name") == "" || parameters.get("_security") == null || (!parameters.get("_security").equals("true") && !parameters.get("_security").equals("false"))) {
                         try {
 
                             response.put("result", "ERR135");
@@ -2086,8 +2086,6 @@ public class server {
                             e.printStackTrace();
                         }
                     }
-
-                    // END DEFINING ACTIONS
 
                 } else if (parameters.get("_action").equals("delete_project")) { //TODO command action
 
@@ -2275,7 +2273,7 @@ public class server {
 
                             e.printStackTrace();
                         }
-                    } else if (parameters.get("_name") == null) {
+                    } else if (parameters.get("_name") == null || parameters.get("_name") == "") {
                         try {
 
                             response.put("result", "ERR118");
@@ -2351,6 +2349,142 @@ public class server {
 
                     }
 
+
+                } else if (parameters.get("_action").equals("edit_table")) { //TODO command action
+
+
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "project does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "project must contain only alphanumeric characters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (parameters.get("_name") == null || parameters.get("_name") == "" || parameters.get("_table") == null) {
+                        try {
+
+                            response.put("result", "ERR135");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Unexpected parameters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
+                        try {
+
+                            response.put("result", "ERR109");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "Table does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "You do not have the privileges to perform this action");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else {
+
+                        DATA.get("_core").get("_tables").get(parameters.get("_project")+"_"+parameters.get("_table")).put("name", parameters.get("_name"));
+
+                        try {
+
+                            response.put("result", "SUC100");
+                            response.put("text", "Done");
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    }
 
                 } else if (parameters.get("_action").equals("delete_table")) { //TODO command action
 
