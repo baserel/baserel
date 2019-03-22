@@ -185,8 +185,8 @@ public class server {
 
             String[] parts = uri.split("/");
 
-            String datamap = parts[2];
-            String continent = parts[3];
+            String project = parts[2];
+            String table = parts[3];
 
             HashMap<String, String> parameters = getParameters(httpExchange);
 
@@ -206,8 +206,8 @@ public class server {
 
                     e.printStackTrace();
                 }
-            } else if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
-                    || !StringUtils.isAlphanumeric(continent)) {
+            } else if (project == null || table == null || !StringUtils.isAlphanumeric(project)
+                    || !StringUtils.isAlphanumeric(table)) {
                 try {
                     response.put("result", "ERR110");
                     response.put("text", "Access denied");
@@ -220,7 +220,7 @@ public class server {
 
                     e.printStackTrace();
                 }
-            } else if (DATA.get(datamap) == null) {
+            } else if (DATA.get(project) == null) {
                 try {
 
                     response.put("result", "ERR104");
@@ -240,15 +240,15 @@ public class server {
 
                 parameters.remove("_id");
 
-                if (!validateDatamapAuth(parameters, datamap)
-                        && DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
+                if (!validateProjectAuth(parameters, project)
+                        && DATA.get("_core").get("_projects").get(project).get("security").equals("true")) {
                     try {
                         response.put("result", "ERR113");
                         response.put("text", "Access denied");
 
                         if (API_EXPERIMENTAL) {
                             response.put("info",
-                                    "Datamap Auth Validation failed " + genDatamapAuth2(parameters, datamap));
+                                    "project Auth Validation failed: "+genProjectAuthExperimental(parameters, project));
                         }
 
                     } catch (JSONException e) {
@@ -259,7 +259,7 @@ public class server {
 
                     parameters.remove("_auth");
 
-                    if (DATA.get(datamap).get(continent) == null) {
+                    if (DATA.get(project).get(table) == null) {
                         try {
 
                             response.put("result", "ERR109");
@@ -299,11 +299,11 @@ public class server {
                                     temp_map.put(entry.getKey(), entry.getValue());
                                 }
 
-                                index = DATA.get("_core").get("_tables").get(datamap + "_" + continent).get("index");
+                                index = DATA.get("_core").get("_tables").get(project + "_" + table).get("index");
 
-                                DATA.get(datamap).get(continent).put(index, temp_map);
+                                DATA.get(project).get(table).put(index, temp_map);
 
-                                DATA.get("_core").get("_tables").get(datamap + "_" + continent).put("index",
+                                DATA.get("_core").get("_tables").get(project + "_" + table).put("index",
                                         (Integer.parseInt(index) + 1) + "");
 
                                 try {
@@ -319,7 +319,7 @@ public class server {
                             }
 
                         } else {
-                            if (DATA.get(datamap).get(continent).get(index) == null) {
+                            if (DATA.get(project).get(table).get(index) == null) {
                                 try {
 
                                     response.put("result", "ERR111");
@@ -352,13 +352,13 @@ public class server {
 
                                 } else {
 
-                                    temp_map = DATA.get(datamap).get(continent).get(index);
+                                    temp_map = DATA.get(project).get(table).get(index);
 
                                     for (Entry<String, String> entry : parameters.entrySet()) {
                                         temp_map.put(entry.getKey(), entry.getValue());
                                     }
 
-                                    DATA.get(datamap).get(continent).put(index, temp_map);
+                                    DATA.get(project).get(table).put(index, temp_map);
 
                                     try {
 
@@ -393,8 +393,8 @@ public class server {
 
             String[] parts = uri.split("/");
 
-            String datamap = parts[2];
-            String continent = parts[3];
+            String project = parts[2];
+            String table = parts[3];
 
             Map<String, String> parameters = getParameters(httpExchange);
 
@@ -413,8 +413,8 @@ public class server {
                     e.printStackTrace();
                 }
             } else {
-                if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
-                        || !StringUtils.isAlphanumeric(continent)) {
+                if (project == null || table == null || !StringUtils.isAlphanumeric(project)
+                        || !StringUtils.isAlphanumeric(table)) {
                     try {
 
                         response.put("result", "ERR110");
@@ -429,7 +429,7 @@ public class server {
                         e.printStackTrace();
                     }
                 } else {
-                    if (DATA.get(datamap) == null) {
+                    if (DATA.get(project) == null) {
                         try {
 
                             response.put("result", "ERR104");
@@ -449,8 +449,8 @@ public class server {
 
                         parameters.remove("_id");
 
-                        if (!validateDatamapAuth(parameters, datamap)
-                                && DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
+                        if (!validateProjectAuth(parameters, project)
+                                && DATA.get("_core").get("_projects").get(project).get("security").equals("true")) {
                             try {
                                 response.put("result", "ERR113");
                                 response.put("text", "Access denied");
@@ -467,7 +467,7 @@ public class server {
 
                             parameters.remove("_auth");
 
-                            if (DATA.get(datamap).get(continent) == null) {
+                            if (DATA.get(project).get(table) == null) {
                                 try {
 
                                     response.put("result", "ERR109");
@@ -484,12 +484,12 @@ public class server {
                             } else {
 
                                 if (index != "") {
-                                    response = new JSONObject(DATA.get(datamap).get(continent).get(index));
+                                    response = new JSONObject(DATA.get(project).get(table).get(index));
                                 } else if (parameters.size() == 0) {
-                                    response = new JSONObject(DATA.get(datamap).get(continent));
+                                    response = new JSONObject(DATA.get(project).get(table));
                                 } else {
                                     response = new JSONObject(
-                                            filterContinent(DATA.get(datamap).get(continent), parameters));
+                                            filtertable(DATA.get(project).get(table), parameters));
                                 }
 
                             }
@@ -512,8 +512,8 @@ public class server {
 
             String[] parts = uri.split("/");
 
-            String datamap = parts[2];
-            String continent = parts[3];
+            String project = parts[2];
+            String table = parts[3];
 
             Map<String, String> parameters = getParameters(httpExchange);
 
@@ -532,8 +532,8 @@ public class server {
                     e.printStackTrace();
                 }
             } else {
-                if (datamap == null || continent == null || !StringUtils.isAlphanumeric(datamap)
-                        || !StringUtils.isAlphanumeric(continent)) {
+                if (project == null || table == null || !StringUtils.isAlphanumeric(project)
+                        || !StringUtils.isAlphanumeric(table)) {
                     try {
 
                         response.put("result", "ERR110");
@@ -548,7 +548,7 @@ public class server {
                         e.printStackTrace();
                     }
                 } else {
-                    if (DATA.get(datamap) == null) {
+                    if (DATA.get(project) == null) {
                         try {
 
                             response.put("result", "ERR104");
@@ -568,8 +568,8 @@ public class server {
 
                         parameters.remove("_id");
 
-                        if (!validateDatamapAuth(parameters, datamap)
-                                && DATA.get("_core").get("_projects").get(datamap).get("security").equals("true")) {
+                        if (!validateProjectAuth(parameters, project)
+                                && DATA.get("_core").get("_projects").get(project).get("security").equals("true")) {
                             try {
                                 response.put("result", "ERR113");
                                 response.put("text", "Access denied");
@@ -586,7 +586,7 @@ public class server {
 
                             parameters.remove("_auth");
 
-                            if (DATA.get(datamap).get(continent) == null) {
+                            if (DATA.get(project).get(table) == null) {
                                 try {
 
                                     response.put("result", "ERR109");
@@ -604,7 +604,7 @@ public class server {
 
                                 if (index != "") {
 
-                                    DATA.get(datamap).get(continent).remove(index);
+                                    DATA.get(project).get(table).remove(index);
 
                                     try {
 
@@ -618,7 +618,7 @@ public class server {
 
                                 } else if (parameters.size() == 0) {
 
-                                    DATA.get(datamap).get(continent).clear();
+                                    DATA.get(project).get(table).clear();
 
                                     try {
 
@@ -632,7 +632,7 @@ public class server {
 
                                 } else {
 
-                                    filterAndDeleteContinent(datamap, continent, parameters);
+                                    filterAndDeletetable(project, table, parameters);
 
                                     try {
 
@@ -1961,6 +1961,7 @@ public class server {
                         }
 
                         response = new JSONObject(temp_keymap);
+
                     }
 
 
@@ -2207,6 +2208,120 @@ public class server {
                     }
 
                     // END DEFINING ACTIONS
+
+                } else if (parameters.get("_action").equals("get_project_users")) { //TODO command action
+
+
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_email is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "User email does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "_project is null");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "project does not exists");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "project must contain only alphanumeric characters");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", "You do not have the privileges to perform this action");
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else {
+
+                        for (Entry<String, String> entry : DATA.get("_core").get("_project_privileges").get(parameters.get("_project")).entrySet()) {
+
+                            temp_map2 = new ConcurrentHashMap<>(DATA.get("_core").get("_privileges").get(DATA.get("_core").get("_user_privileges").get(entry.getKey()).get(parameters.get("_project"))));
+
+                            temp_map.put("email", entry.getKey());
+                            temp_map.put("fingerprint", DATA.get("_core").get("_users").get(entry.getKey()).get("fingerprint"));
+                            temp_map.put("perm_get", temp_map2.get("get"));
+                            temp_map.put("perm_put", temp_map2.get("put"));
+                            temp_map.put("perm_del", temp_map2.get("del"));
+                            temp_map.put("perm_adm", temp_map2.get("adm"));
+                            temp_map.put("perm_cmd", temp_map2.get("cmd"));
+
+                            temp_keymap.put(entry.getKey(), temp_map);
+                        }
+
+                        response = new JSONObject(temp_keymap);
+
+                    }
 
                 } else if (parameters.get("_action").equals("create_table")) { //TODO command action
 
@@ -2909,7 +3024,7 @@ public class server {
         return emailAddress.contains(" ") == false && emailAddress.matches(".+@.+\\.[a-z]+");
     }
 
-    public static ConcurrentHashMap<String, ConcurrentHashMap<String, String>> filterContinent(
+    public static ConcurrentHashMap<String, ConcurrentHashMap<String, String>> filtertable(
             ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, Map<String, String> params) {
 
         ConcurrentHashMap<String, ConcurrentHashMap<String, String>> result = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
@@ -2999,16 +3114,16 @@ public class server {
             return new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
     }
 
-    public static void filterAndDeleteContinent(String datamap, String continent, Map<String, String> params) {
+    public static void filterAndDeletetable(String project, String table, Map<String, String> params) {
 
-        for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(datamap).get(continent).entrySet()) {
+        for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(project).get(table).entrySet()) {
 
             for (Entry<String, String> c_entry : params.entrySet()) {
                 if (entry.getValue().get(c_entry.getKey()) != null) {
 
                     if (c_entry.getValue().substring(0, 1).equals("!")) {
                         if (!entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue().substring(1))) {
-                            DATA.get(datamap).get(continent).remove(entry.getKey());
+                            DATA.get(project).get(table).remove(entry.getKey());
                         }
                     } else if (c_entry.getValue().substring(0, 2).equals(">=")) {
                         if (isDouble(entry.getValue().get(c_entry.getKey()))
@@ -3017,7 +3132,7 @@ public class server {
                             if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) >= Float
                                     .parseFloat(c_entry.getValue().substring(2))) {
 
-                                DATA.get(datamap).get(continent).remove(entry.getKey());
+                                DATA.get(project).get(table).remove(entry.getKey());
 
                             }
 
@@ -3029,7 +3144,7 @@ public class server {
                             if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) <= Float
                                     .parseFloat(c_entry.getValue().substring(2))) {
 
-                                DATA.get(datamap).get(continent).remove(entry.getKey());
+                                DATA.get(project).get(table).remove(entry.getKey());
 
                             }
 
@@ -3041,7 +3156,7 @@ public class server {
                             if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) > Float
                                     .parseFloat(c_entry.getValue().substring(1))) {
 
-                                DATA.get(datamap).get(continent).remove(entry.getKey());
+                                DATA.get(project).get(table).remove(entry.getKey());
 
                             }
 
@@ -3053,7 +3168,7 @@ public class server {
                             if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) < Float
                                     .parseFloat(c_entry.getValue().substring(1))) {
 
-                                DATA.get(datamap).get(continent).remove(entry.getKey());
+                                DATA.get(project).get(table).remove(entry.getKey());
 
                             }
 
@@ -3061,7 +3176,7 @@ public class server {
                     } else {
 
                         if (entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue())) {
-                            DATA.get(datamap).get(continent).remove(entry.getKey());
+                            DATA.get(project).get(table).remove(entry.getKey());
                         }
                     }
 
@@ -3105,18 +3220,23 @@ public class server {
 
     }
 
-    public static boolean validateDatamapAuth(Map<String, String> map, String datamap) {
+    public static boolean validateProjectAuth(Map<String, String> map, String project) {
 
-        boolean auth = true;
+        boolean auth = false;
 
         String CLIENT_HASH;
         String SERVER_HASH;
 
         CLIENT_HASH = map.get("_auth");
-        SERVER_HASH = genDatamapAuth(map, datamap);
 
-        if (!CLIENT_HASH.equals(SERVER_HASH)) {
-            auth = false;
+        map.remove("_auth");
+
+        for (Entry<String, String> entry : DATA.get("_core").get("_project_privileges").get(project).entrySet()) {
+            SERVER_HASH = MD5(concMapValues(map)+entry.getValue());
+            if (CLIENT_HASH.equals(SERVER_HASH)) {
+                auth = true;
+                break;
+            }
         }
 
         return auth;
@@ -3151,7 +3271,7 @@ public class server {
 
     }
 
-    public static String genDatamapAuth(Map<String, String> map, String datamap) {
+    public static String genProjectAuth(Map<String, String> map, String project) {
 
         String SERVER_HASH = "";
         String MAP_COCAT = "";
@@ -3159,13 +3279,13 @@ public class server {
         map.remove("_auth");
 
         MAP_COCAT = concMapValues(map);
-        SERVER_HASH = MD5(MAP_COCAT + DATA.get("_core").get("_projects").get(datamap).get("key"));
+        SERVER_HASH = MD5(MAP_COCAT + DATA.get("_core").get("_projects").get(project).get("key"));
 
         return SERVER_HASH;
 
     }
 
-    public static String genDatamapAuth2(Map<String, String> map, String datamap) {
+    public static String genProjectAuthExperimental(Map<String, String> map, String project) {
 
         String SERVER_HASH = "";
         String MAP_COCAT = "";
@@ -3173,7 +3293,7 @@ public class server {
         map.remove("_auth");
 
         MAP_COCAT = concMapValues(map);
-        SERVER_HASH = MAP_COCAT + DATA.get("_core").get("_projects").get(datamap).get("key");
+        SERVER_HASH = MAP_COCAT + DATA.get("_core").get("_projects").get(project).get("key");
 
         return SERVER_HASH;
 
