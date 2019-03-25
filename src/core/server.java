@@ -32,6 +32,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 
 import org.apache.commons.lang.StringUtils;
 import org.json.JSONException;
@@ -106,6 +109,7 @@ public class server {
                 }
             });
             // TODO Handlers contexts
+            httpsServer.createContext("/test", new TestHandler());
             httpsServer.createContext("/adm", new AdmHandler());
             httpsServer.createContext("/put", new PutHandler());
             httpsServer.createContext("/get", new GetHandler());
@@ -174,6 +178,27 @@ public class server {
     // @@@@@
 
     //TODO Starting defining handlers
+
+    static class TestHandler implements HttpHandler { //TODO Handler
+
+        public void handle(HttpExchange httpExchange) throws IOException {
+
+            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+            String response = "";
+
+            engine.put("_id", "1");
+
+            try {
+                response = engine.eval("_id == 1").toString();
+            } catch (ScriptException e) {
+                //e.printStackTrace();
+                response = "error";
+            }
+
+            server.writeResponse(httpExchange, response);
+
+        }
+    }
 
     static class PutHandler implements HttpHandler { //TODO Handler
 
@@ -483,13 +508,11 @@ public class server {
                                 }
                             } else {
 
-                                if (index != "") {
-                                    response = new JSONObject(DATA.get(project).get(table).get(index));
-                                } else if (parameters.size() == 0) {
+                                if (parameters.get("_where") == null) {
                                     response = new JSONObject(DATA.get(project).get(table));
                                 } else {
                                     response = new JSONObject(
-                                            filtertable(DATA.get(project).get(table), parameters));
+                                            filterTable(DATA.get(project).get(table), parameters.get("_where")));
                                 }
 
                             }
@@ -632,16 +655,32 @@ public class server {
 
                                 } else {
 
-                                    filterAndDeletetable(project, table, parameters);
+                                    if (filterAndDeletetable(DATA.get(project).get(table), parameters.get("_where"), project, table)) {
+                                        try {
 
-                                    try {
+                                            response.put("result", "SUC100");
+                                            response.put("text", "Done");
 
-                                        response.put("result", "SUC100");
-                                        response.put("text", "Done");
+                                        } catch (JSONException e) {
 
-                                    } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try {
 
-                                        e.printStackTrace();
+                                            response.put("result", "ERR136");
+                                            response.put("text", "Access denied");
+
+                                            if (API_EXPERIMENTAL) {
+                                                response.put("info", "Invalid sintax on where condition");
+                                            }
+
+                                        } catch (JSONException e) {
+
+                                            e.printStackTrace();
+                                        }
                                     }
 
                                 }
@@ -3024,86 +3063,31 @@ public class server {
         return emailAddress.contains(" ") == false && emailAddress.matches(".+@.+\\.[a-z]+");
     }
 
-    public static ConcurrentHashMap<String, ConcurrentHashMap<String, String>> filtertable(
-            ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, Map<String, String> params) {
+    public static ConcurrentHashMap<String, ConcurrentHashMap<String, String>> filterTable(
+            ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, String where) {
 
         ConcurrentHashMap<String, ConcurrentHashMap<String, String>> result = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
+
         boolean success = true;
 
         for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
 
-            for (Entry<String, String> c_entry : params.entrySet()) {
-                if (entry.getValue().get(c_entry.getKey()) != null) {
+            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
 
-                    if (c_entry.getValue().substring(0, 1).equals("!")) {
-                        if (!entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue().substring(1))) {
-                            result.put(entry.getKey(), entry.getValue());
-                        }
-                    } else if (c_entry.getValue().substring(0, 2).equals(">=")) {
-                        if (isDouble(entry.getValue().get(c_entry.getKey()))
-                                && isDouble(c_entry.getValue().substring(2))) {
+            engine.put("_id", entry.getKey());
 
-                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) >= Float
-                                    .parseFloat(c_entry.getValue().substring(2))) {
+            for (Entry<String, String> se : entry.getValue().entrySet()) {
+                engine.put(se.getKey(), se.getValue());
+            }
 
-                                result.put(entry.getKey(), entry.getValue());
+            try {
 
-                            }
+                if(engine.eval(where).toString().equals("true")) result.put(entry.getKey(), entry.getValue());
 
-                        } else {
-                            success = false;
-                        }
-                    } else if (c_entry.getValue().substring(0, 2).equals("<=")) {
-                        if (isDouble(entry.getValue().get(c_entry.getKey()))
-                                && isDouble(c_entry.getValue().substring(2))) {
-
-                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) <= Float
-                                    .parseFloat(c_entry.getValue().substring(2))) {
-
-                                result.put(entry.getKey(), entry.getValue());
-
-                            }
-
-                        } else {
-                            success = false;
-                        }
-                    } else if (c_entry.getValue().substring(0, 1).equals(">")) {
-                        if (isDouble(entry.getValue().get(c_entry.getKey()))
-                                && isDouble(c_entry.getValue().substring(1))) {
-
-                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) > Float
-                                    .parseFloat(c_entry.getValue().substring(1))) {
-
-                                result.put(entry.getKey(), entry.getValue());
-
-                            }
-
-                        } else {
-                            success = false;
-                        }
-                    } else if (c_entry.getValue().substring(0, 1).equals("<")) {
-                        if (isDouble(entry.getValue().get(c_entry.getKey()))
-                                && isDouble(c_entry.getValue().substring(1))) {
-
-                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) < Float
-                                    .parseFloat(c_entry.getValue().substring(1))) {
-
-                                result.put(entry.getKey(), entry.getValue());
-
-                            }
-
-                        } else {
-                            success = false;
-                        }
-                    } else {
-
-                        if (entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue())) {
-                            result.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-
-                }
-
+            } catch (ScriptException e) {
+                //e.printStackTrace();
+                success = false;
+                break;
             }
 
         }
@@ -3114,77 +3098,36 @@ public class server {
             return new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
     }
 
-    public static void filterAndDeletetable(String project, String table, Map<String, String> params) {
+    public static boolean filterAndDeletetable(
+            ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, String where, String project, String table) {
 
-        for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(project).get(table).entrySet()) {
+        ConcurrentHashMap<String, ConcurrentHashMap<String, String>> result = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
 
-            for (Entry<String, String> c_entry : params.entrySet()) {
-                if (entry.getValue().get(c_entry.getKey()) != null) {
+        boolean success = true;
 
-                    if (c_entry.getValue().substring(0, 1).equals("!")) {
-                        if (!entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue().substring(1))) {
-                            DATA.get(project).get(table).remove(entry.getKey());
-                        }
-                    } else if (c_entry.getValue().substring(0, 2).equals(">=")) {
-                        if (isDouble(entry.getValue().get(c_entry.getKey()))
-                                && isDouble(c_entry.getValue().substring(2))) {
+        for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
 
-                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) >= Float
-                                    .parseFloat(c_entry.getValue().substring(2))) {
+            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
 
-                                DATA.get(project).get(table).remove(entry.getKey());
+            engine.put("_id", entry.getKey());
 
-                            }
+            for (Entry<String, String> se : entry.getValue().entrySet()) {
+                engine.put(se.getKey(), se.getValue());
+            }
 
-                        }
-                    } else if (c_entry.getValue().substring(0, 2).equals("<=")) {
-                        if (isDouble(entry.getValue().get(c_entry.getKey()))
-                                && isDouble(c_entry.getValue().substring(2))) {
+            try {
 
-                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) <= Float
-                                    .parseFloat(c_entry.getValue().substring(2))) {
+                if(engine.eval(where).toString().equals("true")) DATA.get(project).get(table).remove(entry.getKey());
 
-                                DATA.get(project).get(table).remove(entry.getKey());
-
-                            }
-
-                        }
-                    } else if (c_entry.getValue().substring(0, 1).equals(">")) {
-                        if (isDouble(entry.getValue().get(c_entry.getKey()))
-                                && isDouble(c_entry.getValue().substring(1))) {
-
-                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) > Float
-                                    .parseFloat(c_entry.getValue().substring(1))) {
-
-                                DATA.get(project).get(table).remove(entry.getKey());
-
-                            }
-
-                        }
-                    } else if (c_entry.getValue().substring(0, 1).equals("<")) {
-                        if (isDouble(entry.getValue().get(c_entry.getKey()))
-                                && isDouble(c_entry.getValue().substring(1))) {
-
-                            if (Double.parseDouble(entry.getValue().get(c_entry.getKey())) < Float
-                                    .parseFloat(c_entry.getValue().substring(1))) {
-
-                                DATA.get(project).get(table).remove(entry.getKey());
-
-                            }
-
-                        }
-                    } else {
-
-                        if (entry.getValue().get(c_entry.getKey()).equals(c_entry.getValue())) {
-                            DATA.get(project).get(table).remove(entry.getKey());
-                        }
-                    }
-
-                }
-
+            } catch (ScriptException e) {
+                //e.printStackTrace();
+                success = false;
+                break;
             }
 
         }
+
+        return success;
     }
 
     public static boolean validateAPIMapKeys(Map<String, String> map) {
