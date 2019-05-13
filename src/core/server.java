@@ -55,7 +55,7 @@ public class server {
     static String API_CORE_KEY = "ntiqfki5h28HaVd2eycytwHZn4ooQmRmsU4tQx2y3g7aZCoE8CFbvEWT2omjDjj4"; // System Key to validate ADM commands
     static ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>> DATA = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>>();
     static boolean API_EXPERIMENTAL = true; // Disable ADM API Auth and show additional information while an error
-
+    static Map<String, String> API_MESSAGES = new HashMap<String, String>();
     /**
      * @param args
      */
@@ -124,6 +124,49 @@ public class server {
             exception.printStackTrace();
 
         }
+        
+        // TODO Defining errors
+
+        API_MESSAGES.put("SUC100", "Done");
+        API_MESSAGES.put("ERR100", "_auth is null");
+        API_MESSAGES.put("ERR101", "_action is null");
+        API_MESSAGES.put("ERR102", "_project is null");
+        API_MESSAGES.put("ERR103", "Project must contain only alphanumeric characters");
+        API_MESSAGES.put("ERR104", "Project does not exists");
+        API_MESSAGES.put("ERR105", "Unknown action");
+        API_MESSAGES.put("ERR106", "API Auth Validation failed");
+        API_MESSAGES.put("ERR107", "_table is null");
+        API_MESSAGES.put("ERR108", "Table already exists");
+        API_MESSAGES.put("ERR109", "Table does not exists");
+        API_MESSAGES.put("ERR110", "Unexpected URI");
+        API_MESSAGES.put("ERR111", "Table record does not exists");
+        API_MESSAGES.put("ERR112", "The parameters contain keys with non-alphanumeric characters");
+        API_MESSAGES.put("ERR113", "Project Auth Validation failed");
+        API_MESSAGES.put("ERR114", "_security is null");
+        API_MESSAGES.put("ERR115", "Unexpected value");
+        API_MESSAGES.put("ERR116", "Project already exists");
+        API_MESSAGES.put("ERR117", "_experimental is null");
+        API_MESSAGES.put("ERR118", "_name is null");
+        API_MESSAGES.put("ERR119", "_email is null");
+        API_MESSAGES.put("ERR120", "_pass is null");
+        API_MESSAGES.put("ERR121", "_verified is null");
+        API_MESSAGES.put("ERR122", "_super is null");
+        API_MESSAGES.put("ERR123", "Email already exists");
+        API_MESSAGES.put("ERR124", "_pass must be at least 8 characters long");
+        API_MESSAGES.put("ERR125", "_email is invalid");
+        API_MESSAGES.put("ERR126", "User email does not exists");
+        API_MESSAGES.put("ERR127", "This user cannot be deleted");
+        API_MESSAGES.put("ERR128", "Table name must contain only alphanumeric characters");
+        API_MESSAGES.put("ERR129", "You do not have the privileges to perform this action");
+        API_MESSAGES.put("ERR130", "User fingerprint does not exists");
+        API_MESSAGES.put("ERR131", "Some keys where not found on this table");
+        API_MESSAGES.put("ERR132", "Super users cannot be deleted");
+        API_MESSAGES.put("ERR133", "_fingerprint is invalid");
+        API_MESSAGES.put("ERR134", "Privileges not found for this user");
+        API_MESSAGES.put("ERR135", "Unexpected parameters");
+        API_MESSAGES.put("ERR136", "Invalid sintax on where condition");
+        API_MESSAGES.put("ERR137", "Access denied");
+        
 
         // TODO Pre-running
 
@@ -140,6 +183,9 @@ public class server {
             temp_core.put("_user_privileges", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
             temp_core.put("_project_tables", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
             temp_core.put("_user_fingerprints", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_table_columns", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_columns", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+            temp_core.put("_temp", new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
 
             DATA.put("_core", temp_core);
 
@@ -224,7 +270,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "_auth is null");
+                        response.put("info", API_MESSAGES.get("ERR100"));
                     }
 
                 } catch (JSONException e) {
@@ -238,7 +284,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "Unexpected URI");
+                        response.put("info", API_MESSAGES.get("ERR110"));
                     }
 
                 } catch (JSONException e) {
@@ -252,7 +298,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "project does not exists");
+                        response.put("info", API_MESSAGES.get("ERR104"));
                     }
 
                 } catch (JSONException e) {
@@ -291,7 +337,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "table does not exists");
+                                response.put("info", API_MESSAGES.get("ERR109"));
                             }
 
                         } catch (JSONException e) {
@@ -308,8 +354,7 @@ public class server {
                                     response.put("text", "Access denied");
 
                                     if (API_EXPERIMENTAL) {
-                                        response.put("info",
-                                                "The parameters contains keys with non-alphanumeric characters");
+                                        response.put("info", API_MESSAGES.get("ERR112"));
                                     }
                                 } catch (JSONException e) {
 
@@ -334,7 +379,7 @@ public class server {
                                 try {
 
                                     response.put("result", "SUC100");
-                                    response.put("text", "Done");
+                                    response.put("text", API_MESSAGES.get("SUC100"));
 
                                 } catch (JSONException e) {
 
@@ -351,7 +396,7 @@ public class server {
                                     response.put("text", "Access denied");
 
                                     if (API_EXPERIMENTAL) {
-                                        response.put("info", "Table record id does not exists");
+                                        response.put("info", API_MESSAGES.get("ERR111"));
                                     }
 
                                 } catch (JSONException e) {
@@ -367,8 +412,7 @@ public class server {
                                         response.put("text", "Access denied");
 
                                         if (API_EXPERIMENTAL) {
-                                            response.put("info",
-                                                    "The parameters contains keys with non-alphanumeric characters");
+                                            response.put("info", API_MESSAGES.get("ERR112"));
                                         }
                                     } catch (JSONException e) {
 
@@ -388,7 +432,7 @@ public class server {
                                     try {
 
                                         response.put("result", "SUC100");
-                                        response.put("text", "Done");
+                                        response.put("text", API_MESSAGES.get("SUC100"));
                                         response.put("_id", index);
 
                                     } catch (JSONException e) {
@@ -430,7 +474,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "_auth is null");
+                        response.put("info", API_MESSAGES.get("ERR100"));
                     }
 
                 } catch (JSONException e) {
@@ -446,7 +490,7 @@ public class server {
                         response.put("text", "Access denied");
 
                         if (API_EXPERIMENTAL) {
-                            response.put("info", "Unexpected URI");
+                            response.put("info", API_MESSAGES.get("ERR110"));
                         }
 
                     } catch (JSONException e) {
@@ -461,7 +505,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -481,7 +525,7 @@ public class server {
                                 response.put("text", "Access denied");
 
                                 if (API_EXPERIMENTAL) {
-                                    response.put("info", "Project Auth Validation failed");
+                                    response.put("info", API_MESSAGES.get("ERR113"));
                                 }
 
                             } catch (JSONException e) {
@@ -499,7 +543,7 @@ public class server {
                                     response.put("text", "Access denied");
 
                                     if (API_EXPERIMENTAL) {
-                                        response.put("info", "table does not exists");
+                                        response.put("info", API_MESSAGES.get("ERR109"));
                                     }
 
                                 } catch (JSONException e) {
@@ -547,7 +591,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "_auth is null");
+                        response.put("info", API_MESSAGES.get("ERR100"));
                     }
 
                 } catch (JSONException e) {
@@ -563,7 +607,7 @@ public class server {
                         response.put("text", "Access denied");
 
                         if (API_EXPERIMENTAL) {
-                            response.put("info", "Unexpected URI");
+                            response.put("info", API_MESSAGES.get("ERR110"));
                         }
 
                     } catch (JSONException e) {
@@ -578,7 +622,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -598,7 +642,7 @@ public class server {
                                 response.put("text", "Access denied");
 
                                 if (API_EXPERIMENTAL) {
-                                    response.put("info", "Project Auth Validation failed");
+                                    response.put("info", API_MESSAGES.get("ERR113"));
                                 }
 
                             } catch (JSONException e) {
@@ -616,7 +660,7 @@ public class server {
                                     response.put("text", "Access denied");
 
                                     if (API_EXPERIMENTAL) {
-                                        response.put("info", "table does not exists");
+                                        response.put("info", API_MESSAGES.get("ERR109"));
                                     }
 
                                 } catch (JSONException e) {
@@ -632,7 +676,7 @@ public class server {
                                     try {
 
                                         response.put("result", "SUC100");
-                                        response.put("text", "Done");
+                                        response.put("text", API_MESSAGES.get("SUC100"));
 
                                     } catch (JSONException e) {
 
@@ -646,7 +690,7 @@ public class server {
                                     try {
 
                                         response.put("result", "SUC100");
-                                        response.put("text", "Done");
+                                        response.put("text", API_MESSAGES.get("SUC100"));
 
                                     } catch (JSONException e) {
 
@@ -659,7 +703,7 @@ public class server {
                                         try {
 
                                             response.put("result", "SUC100");
-                                            response.put("text", "Done");
+                                            response.put("text", API_MESSAGES.get("SUC100"));
 
                                         } catch (JSONException e) {
 
@@ -674,7 +718,7 @@ public class server {
                                             response.put("text", "Access denied");
 
                                             if (API_EXPERIMENTAL) {
-                                                response.put("info", "Invalid sintax on where condition");
+                                                response.put("info", API_MESSAGES.get("ERR136"));
                                             }
 
                                         } catch (JSONException e) {
@@ -714,7 +758,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "_auth is null");
+                        response.put("info", API_MESSAGES.get("ERR100"));
                     }
 
                 } catch (JSONException e) {
@@ -727,7 +771,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "API Auth Validation failed ");
+                        response.put("info", API_MESSAGES.get("ERR106"));
                     }
 
                 } catch (JSONException e) {
@@ -742,7 +786,7 @@ public class server {
                     response.put("text", "Access denied");
 
                     if (API_EXPERIMENTAL) {
-                        response.put("info", "_action is null");
+                        response.put("info", API_MESSAGES.get("ERR101"));
                     }
 
                 } catch (JSONException e) {
@@ -764,7 +808,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_name is null");
+                                response.put("info", API_MESSAGES.get("ERR118"));
                             }
 
                         } catch (JSONException e) {
@@ -780,7 +824,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -796,7 +840,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_pass is null");
+                                response.put("info", API_MESSAGES.get("ERR120"));
                             }
 
                         } catch (JSONException e) {
@@ -812,7 +856,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_pass must be at least 8 characters long");
+                                response.put("info", API_MESSAGES.get("ERR124"));
                             }
 
                         } catch (JSONException e) {
@@ -828,7 +872,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_verified is null");
+                                response.put("info", API_MESSAGES.get("ERR121"));
                             }
 
                         } catch (JSONException e) {
@@ -845,7 +889,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "_verified is null");
+                                response.put("info", API_MESSAGES.get("ERR115"));
                             }
 
                         } catch (JSONException e) {
@@ -860,7 +904,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -874,7 +918,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -888,7 +932,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -902,7 +946,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -932,7 +976,7 @@ public class server {
 
                         try {
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
                         } catch (JSONException e) {
 
                             e.printStackTrace();
@@ -951,7 +995,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -967,7 +1011,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -983,7 +1027,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_pass must be at least 8 characters long");
+                                response.put("info", API_MESSAGES.get("ERR124"));
                             }
 
                         } catch (JSONException e) {
@@ -1000,7 +1044,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "_verified is null");
+                                response.put("info", API_MESSAGES.get("ERR115"));
                             }
 
                         } catch (JSONException e) {
@@ -1016,7 +1060,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR115"));
                             }
 
                         } catch (JSONException e) {
@@ -1030,7 +1074,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR125"));
                             }
 
                         } catch (JSONException e) {
@@ -1046,7 +1090,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                // response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR123"));
                             }
 
                         } catch (JSONException e) {
@@ -1076,7 +1120,7 @@ public class server {
 
                         try {
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
                         } catch (JSONException e) {
 
                             e.printStackTrace();
@@ -1095,7 +1139,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1111,7 +1155,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1137,7 +1181,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1153,7 +1197,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1169,7 +1213,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Super users cannot be deleted");
+                                response.put("info", API_MESSAGES.get("ERR132"));
                             }
 
                         } catch (JSONException e) {
@@ -1191,7 +1235,7 @@ public class server {
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -1211,7 +1255,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1227,7 +1271,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1244,7 +1288,7 @@ public class server {
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -1265,7 +1309,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1281,7 +1325,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_pass is null");
+                                response.put("info", API_MESSAGES.get("ERR120"));
                             }
 
                         } catch (JSONException e) {
@@ -1297,7 +1341,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1313,7 +1357,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Access denied");
+                                response.put("info", API_MESSAGES.get("ERR137"));
                             }
 
                         } catch (JSONException e) {
@@ -1353,7 +1397,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1369,7 +1413,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1385,7 +1429,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -1400,7 +1444,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -1414,7 +1458,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_table is null");
+                                response.put("info", API_MESSAGES.get("ERR107"));
                             }
 
                         } catch (JSONException e) {
@@ -1428,7 +1472,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User fingerprint does not exists");
+                                response.put("info", API_MESSAGES.get("ERR130"));
                             }
 
                         } catch (JSONException e) {
@@ -1442,7 +1486,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -1456,7 +1500,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -1470,7 +1514,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Unexpected parameters");
+                                response.put("info", API_MESSAGES.get("ERR135"));
                             }
 
                         } catch (JSONException e) {
@@ -1518,7 +1562,7 @@ public class server {
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -1538,7 +1582,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1554,7 +1598,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1570,7 +1614,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -1585,7 +1629,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -1599,7 +1643,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_table is null");
+                                response.put("info", API_MESSAGES.get("ERR107"));
                             }
 
                         } catch (JSONException e) {
@@ -1613,7 +1657,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User fingerprint does not exists");
+                                response.put("info", API_MESSAGES.get("ERR130"));
                             }
 
                         } catch (JSONException e) {
@@ -1627,7 +1671,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -1641,7 +1685,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -1655,7 +1699,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Privileges not found for this user");
+                                response.put("info", API_MESSAGES.get("ERR134"));
                             }
 
                         } catch (JSONException e) {
@@ -1680,7 +1724,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1696,7 +1740,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1712,7 +1756,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -1727,7 +1771,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -1741,7 +1785,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_table is null");
+                                response.put("info", API_MESSAGES.get("ERR107"));
                             }
 
                         } catch (JSONException e) {
@@ -1755,7 +1799,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User fingerprint does not exists");
+                                response.put("info", API_MESSAGES.get("ERR130"));
                             }
 
                         } catch (JSONException e) {
@@ -1769,7 +1813,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -1783,7 +1827,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -1797,7 +1841,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Privileges not found for this user");
+                                response.put("info", API_MESSAGES.get("ERR134"));
                             }
 
                         } catch (JSONException e) {
@@ -1813,7 +1857,7 @@ public class server {
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -1831,7 +1875,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_name is null");
+                                response.put("info", API_MESSAGES.get("ERR118"));
                             }
 
                         } catch (JSONException e) {
@@ -1847,7 +1891,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1862,7 +1906,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1912,8 +1956,6 @@ public class server {
 
                         try {
 
-                            response.put("result", "SUC100");
-                            response.put("text", "Done");
                             response.put("project", project_code);
 
                         } catch (JSONException e) {
@@ -1935,7 +1977,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -1951,7 +1993,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -1967,7 +2009,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -1982,7 +2024,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -1996,7 +2038,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -2010,7 +2052,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -2046,7 +2088,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -2062,7 +2104,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -2097,7 +2139,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -2113,7 +2155,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -2129,7 +2171,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -2144,7 +2186,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -2158,7 +2200,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -2172,7 +2214,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Unexpected parameters");
+                                response.put("info", API_MESSAGES.get("ERR135"));
                             }
 
                         } catch (JSONException e) {
@@ -2186,7 +2228,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -2201,7 +2243,7 @@ public class server {
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -2220,7 +2262,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -2236,7 +2278,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -2252,7 +2294,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -2267,7 +2309,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -2281,7 +2323,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -2295,7 +2337,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -2320,7 +2362,7 @@ public class server {
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -2341,7 +2383,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -2357,7 +2399,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -2373,7 +2415,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -2388,7 +2430,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -2402,7 +2444,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -2416,7 +2458,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -2455,7 +2497,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -2471,7 +2513,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -2487,7 +2529,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -2502,7 +2544,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -2516,7 +2558,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_name is null");
+                                response.put("info", API_MESSAGES.get("ERR118"));
                             }
 
                         } catch (JSONException e) {
@@ -2530,7 +2572,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -2544,7 +2586,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -2564,6 +2606,7 @@ public class server {
 
 
                         DATA.get("_core").get("_tables").put(parameters.get("_project") + "_" + table_code, temp_map);
+                        DATA.get("_core").get("_table_columns").put(parameters.get("_project") + "_" + table_code, new ConcurrentHashMap<String, String>());
 
                         if (DATA.get("_core").get("_project_tables").get(parameters.get("_project")) == null) {
                             temp_map = new ConcurrentHashMap<String, String>();
@@ -2574,8 +2617,6 @@ public class server {
 
                         try {
 
-                            response.put("result", "SUC100");
-                            response.put("text", "Done");
                             response.put("table", table_code);
 
                         } catch (JSONException e) {
@@ -2597,7 +2638,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -2613,7 +2654,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -2629,7 +2670,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -2644,7 +2685,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -2658,7 +2699,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -2672,7 +2713,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Unexpected parameters");
+                                response.put("info", API_MESSAGES.get("ERR135"));
                             }
 
                         } catch (JSONException e) {
@@ -2686,7 +2727,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "Table does not exists");
+                                response.put("info", API_MESSAGES.get("ERR109"));
                             }
 
                         } catch (JSONException e) {
@@ -2700,7 +2741,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -2714,7 +2755,7 @@ public class server {
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -2733,7 +2774,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -2749,7 +2790,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -2765,7 +2806,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -2780,7 +2821,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -2794,7 +2835,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_table is null");
+                                response.put("info", API_MESSAGES.get("ERR107"));
                             }
 
                         } catch (JSONException e) {
@@ -2808,7 +2849,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -2822,7 +2863,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "table does not exists");
+                                response.put("info", API_MESSAGES.get("ERR109"));
                             }
 
                         } catch (JSONException e) {
@@ -2836,7 +2877,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -2849,10 +2890,18 @@ public class server {
                         DATA.get("_core").get("_project_tables").get(parameters.get("_project")).remove(parameters.get("_table"));
                         DATA.get(parameters.get("_project")).remove(parameters.get("_table"));
 
+                        for (Entry<String, String> entry : DATA.get("_core").get("_table_columns").get(parameters.get("_project") + "_" + parameters.get("_table")).entrySet()) {
+
+                            DATA.get("_core").get("_columns").remove(entry.getValue());
+
+                        }
+
+                        DATA.get("_core").get("_table_columns").remove(parameters.get("_project") + "_" + parameters.get("_table"));
+
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -2872,7 +2921,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -2888,7 +2937,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -2904,7 +2953,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -2920,7 +2969,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_table is null");
+                                response.put("info", API_MESSAGES.get("ERR107"));
                             }
 
                         } catch (JSONException e) {
@@ -2935,7 +2984,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -2949,7 +2998,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -2963,7 +3012,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "table does not exists");
+                                response.put("info", API_MESSAGES.get("ERR109"));
                             }
 
                         } catch (JSONException e) {
@@ -2977,7 +3026,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -2990,6 +3039,8 @@ public class server {
 
                         if(DATA.get(parameters.get("_project")).get(parameters.get("_table")) != null) temp_map.put("records_count", ""+DATA.get(parameters.get("_project")).get(parameters.get("_table")).size());
                         else temp_map.put("records_count", "0");
+
+                        temp_map.put("columns", getColumns(parameters.get("_project") + "_" + parameters.get("_table")));
 
                         response = new JSONObject(temp_map);
 
@@ -3007,7 +3058,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -3023,7 +3074,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -3039,7 +3090,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_project is null");
+                                response.put("info", API_MESSAGES.get("ERR102"));
                             }
 
                         } catch (JSONException e) {
@@ -3054,7 +3105,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project does not exists");
+                                response.put("info", API_MESSAGES.get("ERR104"));
                             }
 
                         } catch (JSONException e) {
@@ -3068,7 +3119,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "project must contain only alphanumeric characters");
+                                response.put("info", API_MESSAGES.get("ERR103"));
                             }
 
                         } catch (JSONException e) {
@@ -3082,7 +3133,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "You do not have the privileges to perform this action");
+                                response.put("info", API_MESSAGES.get("ERR129"));
                             }
 
                         } catch (JSONException e) {
@@ -3109,42 +3160,10 @@ public class server {
                     }
 
 
-                } else if (parameters.get("_action").equals("set_api_experimental")) { //TODO command action
+                } else if (parameters.get("_action").equals("replace_table_keys")) { //TODO command action
 
 
-                    if (parameters.get("_experimental") == null) {
-
-                        try {
-
-                            response.put("result", "ERR117");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", "_experimental is null");
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-
-                    } else if (!parameters.get("_experimental").equals("false") && !parameters.get("_experimental").equals("true")) {
-
-                        try {
-
-                            response.put("result", "ERR115");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", "Unexpected value");
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-
-                    } else if (parameters.get("_email") == null) {
+                    if (parameters.get("_email") == null) {
 
                         try {
 
@@ -3152,7 +3171,7 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "_email is null");
+                                response.put("info", API_MESSAGES.get("ERR119"));
                             }
 
                         } catch (JSONException e) {
@@ -3168,7 +3187,418 @@ public class server {
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", "User email does not exists");
+                                response.put("info", API_MESSAGES.get("ERR126"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR102"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_table") == null) {
+
+                        try {
+
+                            response.put("result", "ERR107");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR107"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR104"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR103"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
+                        try {
+
+                            response.put("result", "ERR109");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR109"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR129"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if(!hasColumns(parameters.get("_project")+"_"+parameters.get("_table"), parameters)) {
+                        try {
+
+                            response.put("result", "ERR131");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR131"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    }else{
+
+                        Map<String, String> replace_map = new HashMap<String, String>(parameters);
+
+                        replace_map.remove("_auth");
+                        replace_map.remove("_table");
+                        replace_map.remove("_action");
+                        replace_map.remove("_project");
+                        replace_map.remove("_email");
+
+                        if (!validateAPIMapKeys(replace_map)) {
+
+                            try {
+                                response.put("result", "ERR112");
+                                response.put("text", "Access denied");
+
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR112"));
+                                }
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
+                            }
+
+                        } else {
+
+                            temp_map = new ConcurrentHashMap<String, String>(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")));
+
+                            for (Entry<String, String> entry : temp_map.entrySet()) {
+
+                                DATA.get("_core").get("_columns").get(entry.getValue()).put("key", replace_map.get(entry.getKey()));
+                                DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).put(replace_map.get(entry.getKey()), entry.getValue());
+                                DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).remove(entry.getKey());
+
+                            }
+
+                            for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(parameters.get("_project")).get(parameters.get("_table")).entrySet()) {
+
+                                Map<String, String> data_replace_map = entry.getValue();
+
+                                for (Entry<String, String> entry2 : temp_map.entrySet()) {
+                                    data_replace_map.put(replace_map.get(entry2.getKey()), data_replace_map.get(entry2.getKey()));
+                                    data_replace_map.remove(entry2.getKey());
+                                }
+
+                            }
+
+                            try {
+
+                                response.put("result", "SUC100");
+                                response.put("text", API_MESSAGES.get("SUC100"));
+
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
+                            }
+                        }
+
+                    }
+
+
+                } else if (parameters.get("_action").equals("add_table_keys")) { //TODO command action
+
+
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR119"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR126"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR102"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_table") == null) {
+
+                        try {
+
+                            response.put("result", "ERR107");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR107"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR104"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR103"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
+                        try {
+
+                            response.put("result", "ERR109");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR109"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR129"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else {
+
+                        Map<String, String> new_map = new HashMap<String, String>(parameters);
+
+                        new_map.remove("_auth");
+                        new_map.remove("_action");
+                        new_map.remove("_table");
+                        new_map.remove("_project");
+                        new_map.remove("_email");
+
+                        if (!validateAPIMapKeys(new_map)) {
+
+                            try {
+                                response.put("result", "ERR112");
+                                response.put("text", "Access denied");
+
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR112"));
+                                }
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
+                            }
+
+                        } else {
+                            for (Entry<String, String> entry : new_map.entrySet()) {
+
+                                if(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(entry.getKey()) == null){
+
+                                    String column_key = randomString(16);
+
+                                    DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).put(entry.getKey(), column_key);
+
+                                    temp_map.put("key", entry.getKey());
+                                    temp_map.put("alias", entry.getKey());
+                                    temp_map.put("input", "string");
+                                    temp_map.put("format", "plain");
+
+                                    DATA.get("_core").get("_table_columns").put(column_key, temp_map);
+
+                                }
+
+                            }
+
+                            try {
+
+                                response.put("result", "SUC100");
+                                response.put("text", API_MESSAGES.get("SUC100"));
+
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
+                            }
+                        }
+
+                    }
+
+
+                } else if (parameters.get("_action").equals("set_api_experimental")) { //TODO command action
+
+
+                    if (parameters.get("_experimental") == null) {
+
+                        try {
+
+                            response.put("result", "ERR117");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR117"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (!parameters.get("_experimental").equals("false") && !parameters.get("_experimental").equals("true")) {
+
+                        try {
+
+                            response.put("result", "ERR115");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR115"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR119"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR126"));
                             }
 
                         } catch (JSONException e) {
@@ -3191,7 +3621,7 @@ public class server {
                         try {
 
                             response.put("result", "SUC100");
-                            response.put("text", "Done");
+                            response.put("text", API_MESSAGES.get("SUC100"));
 
                         } catch (JSONException e) {
 
@@ -3226,6 +3656,46 @@ public class server {
     // @@@@@
     // HELPER METHODS
     // @@@@@
+
+    public static boolean hasColumns(String tablecode, Map<String, String> map){
+
+        boolean ret = true;
+
+        map.remove("_auth");
+        map.remove("_action");
+        map.remove("_project");
+        map.remove("_table");
+        map.remove("_email");
+
+        for (Entry<String, String> entry : map.entrySet()) {
+
+            if(DATA.get("_core").get("_table_columns").get(tablecode).get(entry.getKey()) == null){
+                ret = false;
+                break;
+            }
+
+        }
+
+        return ret;
+
+    }
+    public static String getColumns(String tablecode){
+
+        String ret = "";
+
+        for (Entry<String, String> entry : DATA.get("_core").get("_table_columns").get(tablecode).entrySet()) {
+
+            if(!ret.equals("")){
+                ret = ret+",";
+            }
+
+            ret = ret+entry.getKey();
+
+        }
+
+        return ret;
+
+    }
 
     public static boolean hasPriviliges(String email, String projectcode, String privilege) {
 
@@ -3330,7 +3800,7 @@ public class server {
         boolean auth = true;
 
         for (Entry<String, String> entry : map.entrySet()) {
-            if (!StringUtils.isAlphanumeric(entry.getKey())) {
+            if (!isAlphanumeric(entry.getKey())) {
                 auth = false;
                 break;
             }
@@ -3720,6 +4190,14 @@ public class server {
     public static double RandomDouble(int rangeMin, int rangeMax) {
         Random r = new Random();
         return rangeMin + (rangeMax - rangeMin) * r.nextDouble();
+    }
+    public static boolean isAlphanumeric(String str) {
+        for (int i=0; i<str.length(); i++) {
+            char c = str.charAt(i);
+            if (c < 0x30 || (c >= 0x3a && c <= 0x40) || (c > 0x5a && c <= 0x60) || c > 0x7a)
+                return false;
+        }
+        return true;
     }
 
 }
