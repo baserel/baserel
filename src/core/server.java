@@ -1,26 +1,14 @@
 package core;
 
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,16 +34,20 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsParameters;
 import com.sun.net.httpserver.HttpsServer;
+import com.sun.net.httpserver.HttpServer;
 
 public class server {
+
+    //  TODO Defining vars
 
     private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1); // Initializing scheduler
 
     static boolean API_FIRST_RUN = true;
     static String API_CORE_KEY = "ntiqfki5h28HaVd2eycytwHZn4ooQmRmsU4tQx2y3g7aZCoE8CFbvEWT2omjDjj4"; // System Key to validate ADM commands
     static ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>> DATA = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>>();
-    static boolean API_EXPERIMENTAL = true; // Disable ADM API Auth and show additional information while an error
+    static boolean API_EXPERIMENTAL = false; // Disable ADM API Auth and show additional information while an error
     static Map<String, String> API_MESSAGES = new HashMap<String, String>();
+    static int API_OUTPUT_DATA_COUNTER = 0;
     /**
      * @param args
      */
@@ -70,8 +62,10 @@ public class server {
             InetSocketAddress address = new InetSocketAddress(8000);
 
             // initialise the HTTPS server
-            HttpsServer httpsServer = HttpsServer.create(address, 0);
-            SSLContext sslContext = SSLContext.getInstance("TLS");
+            //HttpsServer httpsServer = HttpsServer.create(address, 0);
+            HttpServer httpsServer = HttpServer.create(address, 0);
+
+            /*SSLContext sslContext = SSLContext.getInstance("TLS");
 
             // initialise the keystore
             char[] password = "password".toCharArray();
@@ -107,7 +101,7 @@ public class server {
                         System.out.println("Failed to create HTTPS port");
                     }
                 }
-            });
+            });*/
             // TODO Handlers contexts
             httpsServer.createContext("/test", new TestHandler());
             httpsServer.createContext("/adm", new AdmHandler());
@@ -116,6 +110,32 @@ public class server {
             httpsServer.createContext("/del", new DelHandler());
             httpsServer.setExecutor(null); // creates a default executor
             httpsServer.start();
+
+            System.out.println("Preparing Database...");
+
+            //Making Ser dir
+            new File("ser").mkdir();
+
+            File f = new File("ser/data.ser");
+            if (f.isFile() && f.canRead()) {
+                try
+                {
+                    FileInputStream fis = new FileInputStream("ser/data.ser");
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    DATA = (ConcurrentHashMap) ois.readObject();
+                    ois.close();
+                    fis.close();
+                }catch(IOException ioe)
+                {
+                    ioe.printStackTrace();
+                    return;
+                }catch(ClassNotFoundException c)
+                {
+                    System.out.println("Class not found");
+                    c.printStackTrace();
+                    return;
+                }
+            }
 
             System.out.println("Server is runing");
 
@@ -149,7 +169,7 @@ public class server {
         API_MESSAGES.put("ERR118", "_name is null");
         API_MESSAGES.put("ERR119", "_email is null");
         API_MESSAGES.put("ERR120", "_pass is null");
-        API_MESSAGES.put("ERR121", "_verified is null");
+        API_MESSAGES.put("ERR121", "_enabled is null");
         API_MESSAGES.put("ERR122", "_super is null");
         API_MESSAGES.put("ERR123", "Email already exists");
         API_MESSAGES.put("ERR124", "_pass must be at least 8 characters long");
@@ -169,6 +189,9 @@ public class server {
         API_MESSAGES.put("ERR138", "The parameters contain values with non-alphanumeric characters");
         API_MESSAGES.put("ERR139", "Some keys already exists on this table");
         API_MESSAGES.put("ERR140", "Some replacement keys already exists on this table");
+        API_MESSAGES.put("ERR141", "_column is null");
+        API_MESSAGES.put("ERR142", "_new_column is null");
+        API_MESSAGES.put("ERR143", "_alias is null");
 
 
         // TODO Pre-running
@@ -197,7 +220,7 @@ public class server {
             temp_map.put("name", "Master Developer");
             temp_map.put("email", "dev@baserel.com");
             temp_map.put("pass", MD5("12345678"));
-            temp_map.put("verified", "true");
+            temp_map.put("enabled", "true");
             temp_map.put("super", "true");
             temp_map.put("fingerprint", randomString(32));
 
@@ -207,11 +230,27 @@ public class server {
             DATA.get("_core").get("_user_fingerprints").put(temp_map.get("fingerprint"), temp_map2);
         }
 
-        // Runnable
-        Runnable updateGame = new Runnable() {
+        //TODO Runnable
+        Runnable updateGame = new Runnable()
+        {
             @Override
-            public void run() {
-
+            public void run()
+            {
+                API_OUTPUT_DATA_COUNTER++;
+                if(API_OUTPUT_DATA_COUNTER >= 10)
+                {
+                    try{
+                        FileOutputStream fos = new FileOutputStream("ser/data.ser");
+                        ObjectOutputStream oos = new ObjectOutputStream(fos);
+                        oos.writeObject(DATA);
+                        oos.close();
+                        fos.close();
+                    }
+                    catch(IOException ioe)
+                    {
+                        ioe.printStackTrace();
+                    }
+                }
             }
         };
 
@@ -262,7 +301,9 @@ public class server {
             String project = parts[2];
             String table = parts[3];
 
-            HashMap<String, String> parameters = getParameters(httpExchange);
+            HashMap<String, String> parameters = getParametersJSON(httpExchange);
+
+            System.out.println(parameters.toString());
 
             ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
 
@@ -348,6 +389,7 @@ public class server {
                             e.printStackTrace();
                         }
                     } else {
+
                         if (index.equals("")) {
 
                             if (!validateAPIMapKeys(parameters)) {
@@ -383,6 +425,7 @@ public class server {
 
                                     response.put("result", "SUC100");
                                     response.put("text", API_MESSAGES.get("SUC100"));
+                                    response.put("_id", index);
 
                                 } catch (JSONException e) {
 
@@ -468,7 +511,7 @@ public class server {
             String project = parts[2];
             String table = parts[3];
 
-            Map<String, String> parameters = getParameters(httpExchange);
+            Map<String, String> parameters = getParametersJSON(httpExchange);
 
             if (parameters.get("_auth") == null) {
                 try {
@@ -585,7 +628,7 @@ public class server {
             String project = parts[2];
             String table = parts[3];
 
-            Map<String, String> parameters = getParameters(httpExchange);
+            Map<String, String> parameters = getParametersJSON(httpExchange);
 
             if (parameters.get("_auth") == null) {
                 try {
@@ -747,12 +790,14 @@ public class server {
         public void handle(HttpExchange httpExchange) throws IOException {
 
             JSONObject response = new JSONObject();
-            Map<String, String> parameters = getParameters(httpExchange);
+            Map<String, String> parameters = getParametersJSON(httpExchange);
 
             ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> temp_table = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
             ConcurrentHashMap<String, ConcurrentHashMap<String, String>> temp_keymap = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
             ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
             ConcurrentHashMap<String, String> temp_map2 = new ConcurrentHashMap<String, String>();
+
+            System.out.println(parameters.toString());
 
             if (parameters.get("_auth") == null) {
                 try {
@@ -867,7 +912,7 @@ public class server {
                             e.printStackTrace();
                         }
 
-                    } else if (parameters.get("_verified") == null) {
+                    } else if (parameters.get("_enalbed") == null) {
 
                         try {
 
@@ -883,8 +928,8 @@ public class server {
                             e.printStackTrace();
                         }
 
-                    } else if (!parameters.get("_verified").equals("true")
-                            && !parameters.get("_verified").equals("false")) {
+                    } else if (!parameters.get("_enalbed").equals("true")
+                            && !parameters.get("_enalbed").equals("false")) {
 
                         try {
 
@@ -965,7 +1010,7 @@ public class server {
                         temp_map.put("name", parameters.get("_name"));
                         temp_map.put("email", parameters.get("_email"));
                         temp_map.put("pass", MD5(parameters.get("_pass")));
-                        temp_map.put("verified", parameters.get("_verified"));
+                        temp_map.put("enabled", parameters.get("_enabled"));
                         temp_map.put("super", parameters.get("_super"));
                         temp_map.put("fingerprint", fingerprint);
 
@@ -1038,8 +1083,8 @@ public class server {
                             e.printStackTrace();
                         }
 
-                    } else if (parameters.get("_verified") != null && !parameters.get("_verified").equals("true")
-                            && !parameters.get("_verified").equals("false")) {
+                    } else if (parameters.get("_enalbed") != null && !parameters.get("_enalbed").equals("true")
+                            && !parameters.get("_enalbed").equals("false")) {
 
                         try {
 
@@ -1113,8 +1158,8 @@ public class server {
                         if (parameters.get("_pass") != null)
                             temp_map.put("pass", MD5(parameters.get("_pass")));
 
-                        if (parameters.get("_verified") != null)
-                            temp_map.put("verified", parameters.get("_verified"));
+                        if (parameters.get("_enabled") != null)
+                            temp_map.put("enabled", parameters.get("_enabled"));
 
                         if (parameters.get("_super") != null)
                             temp_map.put("super", parameters.get("_super"));
@@ -1870,7 +1915,7 @@ public class server {
 
 
                 } else if (parameters.get("_action").equals("create_project")) {  //TODO command action
-                    if (parameters.get("_name") == null || parameters.get("_name") == "") {
+                    if (parameters.get("_name") == null || parameters.get("_name") == "" || !StringUtils.isAlphanumeric(parameters.get("_name")) || parameters.get("_name").contains(" ")) {
 
                         try {
 
@@ -1925,7 +1970,8 @@ public class server {
                         temp_map = new ConcurrentHashMap<String, String>();
 
                         temp_map.put("name", parameters.get("_name"));
-                        temp_map.put("security", "false");
+                        temp_map.put("security", "true");
+                        temp_map.put("color", "01579b");
 
                         DATA.get("_core").get("_projects").put(project_code, temp_map);
 
@@ -2210,7 +2256,7 @@ public class server {
 
                             e.printStackTrace();
                         }
-                    } else if (parameters.get("_name") == null || parameters.get("_name") == "" || parameters.get("_security") == null || (!parameters.get("_security").equals("true") && !parameters.get("_security").equals("false"))) {
+                    } else if (parameters.get("_color") == null || parameters.get("_color") == "" || parameters.get("_name") == null || parameters.get("_name") == "" || parameters.get("_security") == null || !StringUtils.isAlphanumeric(parameters.get("_name")) || parameters.get("_name").contains(" ") || (!parameters.get("_security").equals("true") && !parameters.get("_security").equals("false"))) {
                         try {
 
                             response.put("result", "ERR135");
@@ -2242,6 +2288,7 @@ public class server {
 
                         DATA.get("_core").get("_projects").get(parameters.get("_project")).put("name", parameters.get("_name"));
                         DATA.get("_core").get("_projects").get(parameters.get("_project")).put("security", parameters.get("_security"));
+                        DATA.get("_core").get("_projects").get(parameters.get("_project")).put("color", parameters.get("_color"));
 
                         try {
 
@@ -2554,7 +2601,7 @@ public class server {
 
                             e.printStackTrace();
                         }
-                    } else if (parameters.get("_name") == null || parameters.get("_name") == "") {
+                    } else if (parameters.get("_name") == null || parameters.get("_name") == "" || !StringUtils.isAlphanumeric(parameters.get("_name")) || parameters.get("_name").contains(" ")) {
                         try {
 
                             response.put("result", "ERR118");
@@ -2606,6 +2653,7 @@ public class server {
                         temp_map = new ConcurrentHashMap<String, String>();
                         temp_map.put("index", "1");
                         temp_map.put("name", parameters.get("_name"));
+                        temp_map.put("columns_sort", "");
 
 
                         DATA.get("_core").get("_tables").put(parameters.get("_project") + "_" + table_code, temp_map);
@@ -2709,7 +2757,7 @@ public class server {
 
                             e.printStackTrace();
                         }
-                    } else if (parameters.get("_name") == null || parameters.get("_name") == "" || parameters.get("_table") == null) {
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_name")) || parameters.get("_name") == null || parameters.get("_name") == "" || parameters.get("_table") == null || parameters.get("_name").contains(" ")) {
                         try {
 
                             response.put("result", "ERR135");
@@ -2754,6 +2802,10 @@ public class server {
                     } else {
 
                         DATA.get("_core").get("_tables").get(parameters.get("_project")+"_"+parameters.get("_table")).put("name", parameters.get("_name"));
+
+                        if(parameters.get("_columns_sort") != null && parameters.get("_columns_sort") != "") {
+                            DATA.get("_core").get("_tables").get(parameters.get("_project")+"_"+parameters.get("_table")).put("columns_sort", parameters.get("_columns_sort"));
+                        }
 
                         try {
 
@@ -3043,6 +3095,7 @@ public class server {
                         if(DATA.get(parameters.get("_project")).get(parameters.get("_table")) != null) temp_map.put("records_count", ""+DATA.get(parameters.get("_project")).get(parameters.get("_table")).size());
                         else temp_map.put("records_count", "0");
 
+                        temp_map.put("columns_count", getColumnsCount(parameters.get("_project") + "_" + parameters.get("_table")));
                         temp_map.put("columns", getColumns(parameters.get("_project") + "_" + parameters.get("_table")));
 
                         response = new JSONObject(temp_map);
@@ -3149,11 +3202,14 @@ public class server {
                             for (Entry<String, String> entry : DATA.get("_core").get("_project_tables").get(parameters.get("_project")).entrySet()) {
 
                                 temp_keymap.put(entry.getKey(), DATA.get("_core").get("_tables").get(parameters.get("_project") + "_" + entry.getKey()));
+
                                 if (DATA.get(parameters.get("_project")).get(entry.getKey()) != null) {
                                     temp_keymap.get(entry.getKey()).put("records_count", "" + DATA.get(parameters.get("_project")).get(entry.getKey()).size());
                                 } else {
                                     temp_keymap.get(entry.getKey()).put("records_count", "0");
                                 }
+
+                                temp_keymap.get(entry.getKey()).put("columns", getColumns(parameters.get("_project") + "_" + entry.getKey()));
 
                             }
                         }
@@ -3163,7 +3219,7 @@ public class server {
                     }
 
 
-                } else if (parameters.get("_action").equals("replace_table_keys")) { //TODO command action
+                } else if (parameters.get("_action").equals("add_table_column")) { //TODO command action
 
 
                     if (parameters.get("_email") == null) {
@@ -3286,258 +3342,50 @@ public class server {
 
                             e.printStackTrace();
                         }
-                    } else if(!hasColumns(parameters.get("_project")+"_"+parameters.get("_table"), parameters)) {
+                    } else if (parameters.get("_column") == null) {
                         try {
 
-                            response.put("result", "ERR131");
+                            response.put("result", "ERR141");
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR131"));
+                                response.put("info", API_MESSAGES.get("ERR141"));
                             }
 
                         } catch (JSONException e) {
 
                             e.printStackTrace();
                         }
-                    }else if(hasColumnsFromValues(parameters.get("_project")+"_"+parameters.get("_table"), parameters)) {
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_column")) || parameters.get("_column").contains(" ")) {
                         try {
 
-                            response.put("result", "ERR140");
+                            response.put("result", "ERR135");
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR140"));
+                                response.put("info", API_MESSAGES.get("ERR135"));
                             }
 
                         } catch (JSONException e) {
 
                             e.printStackTrace();
                         }
-                    }else{
+                    } else {
 
-                        Map<String, String> replace_map = new HashMap<String, String>(parameters);
+                        if(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_column")) == null){
 
-                        replace_map.remove("_auth");
-                        replace_map.remove("_table");
-                        replace_map.remove("_action");
-                        replace_map.remove("_project");
-                        replace_map.remove("_email");
+                            String column_key = randomString(16);
 
-                        if (!validateAPIMapValues(replace_map)) {
+                            DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).put(parameters.get("_column"), column_key);
 
-                            try {
-                                response.put("result", "ERR112");
-                                response.put("text", "Access denied");
+                            temp_map = new ConcurrentHashMap<>();
 
-                                if (API_EXPERIMENTAL) {
-                                    response.put("info", API_MESSAGES.get("ERR112"));
-                                }
-                            } catch (JSONException e) {
+                            temp_map.put("key", parameters.get("_column"));
+                            temp_map.put("alias", parameters.get("_column").substring(0, 1).toUpperCase() + parameters.get("_column").substring(1));
+                            temp_map.put("input", "string");
+                            temp_map.put("format", "plain");
 
-                                e.printStackTrace();
-                            }
-
-                        } else {
-
-                            for (Entry<String, String> entry : DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).entrySet()) {
-
-                                if(replace_map.get(entry.getKey()) != null){
-
-                                    DATA.get("_core").get("_columns").get(entry.getValue()).put("key", replace_map.get(entry.getKey()));
-                                    DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).put(replace_map.get(entry.getKey()), entry.getValue());
-                                    DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).remove(entry.getKey());
-
-                                }
-
-                            }
-
-                            for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(parameters.get("_project")).get(parameters.get("_table")).entrySet()) {
-
-                                Map<String, String> data_replace_map = entry.getValue();
-
-                                for (Entry<String, String> entry2 : DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).entrySet()) {
-
-                                    if(replace_map.get(entry2.getKey()) != null){
-                                        data_replace_map.put(replace_map.get(entry2.getKey()), data_replace_map.get(entry2.getKey()));
-                                        data_replace_map.remove(entry2.getKey());
-                                    }
-
-                                }
-
-                            }
-
-                            try {
-
-                                response.put("result", "SUC100");
-                                response.put("text", API_MESSAGES.get("SUC100"));
-
-                            } catch (JSONException e) {
-
-                                e.printStackTrace();
-                            }
-                        }
-
-                    }
-
-
-                } else  if (parameters.get("_action").equals("delete_table_keys")) { //TODO command action
-
-
-                    if (parameters.get("_email") == null) {
-
-                        try {
-
-                            response.put("result", "ERR119");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR119"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-
-                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
-
-                        try {
-
-                            response.put("result", "ERR126");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR126"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-
-                    } else if (parameters.get("_project") == null) {
-
-                        try {
-
-                            response.put("result", "ERR102");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR102"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-
-                    } else if (parameters.get("_table") == null) {
-
-                        try {
-
-                            response.put("result", "ERR107");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR107"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-
-                    } else if (DATA.get(parameters.get("_project")) == null) {
-                        try {
-
-                            response.put("result", "ERR104");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR104"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-                        try {
-
-                            response.put("result", "ERR103");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR103"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-                    } else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
-                        try {
-
-                            response.put("result", "ERR109");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR109"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
-                        try {
-
-                            response.put("result", "ERR129");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR129"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-                    } else if(!hasColumns(parameters.get("_project")+"_"+parameters.get("_table"), parameters)) {
-                        try {
-
-                            response.put("result", "ERR131");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR131"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-                    }else{
-
-                        Map<String, String> delete_map = new HashMap<String, String>(parameters);
-
-                        delete_map.remove("_auth");
-                        delete_map.remove("_table");
-                        delete_map.remove("_action");
-                        delete_map.remove("_project");
-                        delete_map.remove("_email");
-
-                        for (Entry<String, String> entry : delete_map.entrySet()) {
-
-                            for (Entry<String, ConcurrentHashMap<String, String>> entry2 : DATA.get(parameters.get("_project")).get(parameters.get("_table")).entrySet()) {
-
-                                DATA.get(parameters.get("_project")).get(parameters.get("_table")).get(entry2.getKey()).remove(entry.getKey());
-
-                            }
-
-                            DATA.get("_core").get("_columns").remove(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(entry.getKey()));
-                            DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).remove(entry.getKey());
+                            DATA.get("_core").get("_columns").put(column_key, temp_map);
 
                         }
 
@@ -3554,7 +3402,7 @@ public class server {
                     }
 
 
-                } else if (parameters.get("_action").equals("add_table_keys")) { //TODO command action
+                } else if (parameters.get("_action").equals("edit_table_column")) { //TODO command action
 
 
                     if (parameters.get("_email") == null) {
@@ -3677,77 +3525,434 @@ public class server {
 
                             e.printStackTrace();
                         }
-                    } else if (hasColumns(parameters.get("_project")+"_"+parameters.get("_table"), parameters)) {
-
+                    } else if (parameters.get("_column") == null) {
                         try {
-                            response.put("result", "ERR139");
+
+                            response.put("result", "ERR141");
                             response.put("text", "Access denied");
 
                             if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR139"));
+                                response.put("info", API_MESSAGES.get("ERR141"));
                             }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (parameters.get("_alias") == null || parameters.get("_alias") == "") {
+                        try {
+
+                            response.put("result", "ERR143");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR143"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (parameters.get("_new_column") == null) {
+                        try {
+
+                            response.put("result", "ERR142");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR142"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_new_column")) || parameters.get("_new_column").contains(" ")) {
+                        try {
+
+                            response.put("result", "ERR135");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR135"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_column")) == null) {
+                        try {
+
+                            response.put("result", "ERR131");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR131"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_new_column")) != null && !parameters.get("_new_column").equals(parameters.get("_column"))) {
+                        try {
+
+                            response.put("result", "ERR140");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR140"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    }else{
+
+                        if(parameters.get("_new_column").equals(parameters.get("_column"))){
+                            DATA.get("_core").get("_columns").get(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_column"))).put("alias", parameters.get("_alias"));
+                        }else{
+                            DATA.get("_core").get("_columns").get(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_column"))).put("key", parameters.get("_new_column"));
+                            DATA.get("_core").get("_columns").get(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_column"))).put("alias", parameters.get("_alias"));
+                            DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).put(parameters.get("_new_column"), DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_column")));
+                            DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).remove(parameters.get("_column"));
+
+                            for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(parameters.get("_project")).get(parameters.get("_table")).entrySet()) {
+
+                                Map<String, String> data_replace_map = entry.getValue();
+
+                                data_replace_map.put(parameters.get("_new_column"), data_replace_map.get(parameters.get("_column")));
+                                data_replace_map.remove(parameters.get("_column"));
+
+                            }
+                        }
+
+                        try {
+
+                            response.put("result", "SUC100");
+                            response.put("text", API_MESSAGES.get("SUC100"));
+
                         } catch (JSONException e) {
 
                             e.printStackTrace();
                         }
 
+                    }
+
+
+                } else  if (parameters.get("_action").equals("delete_table_column")) { //TODO command action
+
+
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR119"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR126"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR102"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_table") == null) {
+
+                        try {
+
+                            response.put("result", "ERR107");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR107"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR104"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR103"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
+                        try {
+
+                            response.put("result", "ERR109");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR109"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR129"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (parameters.get("_column") == null) {
+                        try {
+
+                            response.put("result", "ERR141");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR141"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_column")) == null) {
+                        try {
+
+                            response.put("result", "ERR131");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR131"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    }else{
+
+                        DATA.get("_core").get("_columns").remove(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(parameters.get("_column")));
+                        DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).remove(parameters.get("_column"));
+
+                        for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get(parameters.get("_project")).get(parameters.get("_table")).entrySet()) {
+
+                            Map<String, String> data_replace_map = entry.getValue();
+
+                            data_replace_map.remove(parameters.get("_column"));
+
+                        }
+
+                        try {
+
+                            response.put("result", "SUC100");
+                            response.put("text", API_MESSAGES.get("SUC100"));
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    }
+
+
+                } else if (parameters.get("_action").equals("get_table_columns")) { //TODO command action
+
+
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR119"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR126"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_project") == null) {
+
+                        try {
+
+                            response.put("result", "ERR102");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR102"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (parameters.get("_table") == null) {
+
+                        try {
+
+                            response.put("result", "ERR107");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR107"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get(parameters.get("_project")) == null) {
+                        try {
+
+                            response.put("result", "ERR104");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR104"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                        try {
+
+                            response.put("result", "ERR103");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR103"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (DATA.get(parameters.get("_project")).get(parameters.get("_table")) == null) {
+                        try {
+
+                            response.put("result", "ERR109");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR109"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "any")) {
+                        try {
+
+                            response.put("result", "ERR129");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR129"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
                     } else {
 
-                        Map<String, String> new_map = new HashMap<String, String>(parameters);
+                        if(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")) != null){
+                            for (Entry<String, String> entry : DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).entrySet()) {
 
-                        new_map.remove("_auth");
-                        new_map.remove("_action");
-                        new_map.remove("_table");
-                        new_map.remove("_project");
-                        new_map.remove("_email");
+                                temp_keymap.put(entry.getKey(), DATA.get("_core").get("_columns").get(entry.getValue()));
 
-                        if (!validateAPIMapKeys(new_map)) {
-
-                            try {
-                                response.put("result", "ERR112");
-                                response.put("text", "Access denied");
-
-                                if (API_EXPERIMENTAL) {
-                                    response.put("info", API_MESSAGES.get("ERR112"));
-                                }
-                            } catch (JSONException e) {
-
-                                e.printStackTrace();
-                            }
-
-                        } else {
-
-                            for (Entry<String, String> entry : new_map.entrySet()) {
-
-                                if(DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).get(entry.getKey()) == null){
-
-                                    String column_key = randomString(16);
-
-                                    DATA.get("_core").get("_table_columns").get(parameters.get("_project")+"_"+parameters.get("_table")).put(entry.getKey(), column_key);
-
-                                    temp_map = new ConcurrentHashMap<>();
-
-                                    temp_map.put("key", entry.getKey());
-                                    temp_map.put("alias", entry.getKey());
-                                    temp_map.put("input", "string");
-                                    temp_map.put("format", "plain");
-
-                                    DATA.get("_core").get("_columns").put(column_key, temp_map);
-
-                                }
-
-                            }
-
-                            try {
-
-                                response.put("result", "SUC100");
-                                response.put("text", API_MESSAGES.get("SUC100"));
-
-                            } catch (JSONException e) {
-
-                                e.printStackTrace();
                             }
                         }
+
+                        response = new JSONObject(temp_keymap);
 
                     }
 
@@ -3872,7 +4077,7 @@ public class server {
 
     public static boolean hasColumns(String tablecode, Map<String, String> t_map){
 
-        boolean ret = true;
+        boolean ret = false;
 
         Map<String, String> map = new HashMap<>(t_map);
 
@@ -3884,8 +4089,8 @@ public class server {
 
         for (Entry<String, String> entry : map.entrySet()) {
 
-            if(DATA.get("_core").get("_table_columns").get(tablecode).get(entry.getKey()) == null){
-                ret = false;
+            if(DATA.get("_core").get("_table_columns").get(tablecode).get(entry.getKey()) != null){
+                ret = true;
                 break;
             }
 
@@ -3934,6 +4139,19 @@ public class server {
         }
 
         return ret;
+
+    }
+    public static String getColumnsCount(String tablecode){
+
+        int ret = 0;
+
+        for (Entry<String, String> entry : DATA.get("_core").get("_table_columns").get(tablecode).entrySet()) {
+
+            ret++;
+
+        }
+
+        return ret+"";
 
     }
 
@@ -4040,7 +4258,7 @@ public class server {
         boolean auth = true;
 
         for (Entry<String, String> entry : map.entrySet()) {
-            if (!isAlphanumeric(entry.getKey())) {
+            if (!isAlphanumeric(entry.getKey()) || entry.getKey().contains(" ")) {
                 auth = false;
                 break;
             }
@@ -4210,6 +4428,51 @@ public class server {
         OutputStream os = httpExchange.getResponseBody();
         os.write(response.getBytes());
         os.close();
+    }
+
+    static HashMap<String, String> getParametersJSON(HttpExchange httpExchange) {
+        HashMap<String, String> parameters = new HashMap<>();
+        InputStream inputStream = httpExchange.getRequestBody();
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[2048];
+        int read = 0;
+
+        try {
+            while ((read = inputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, read);
+            }
+
+            JSONObject jsonObject;
+
+            try{
+                jsonObject = new JSONObject(byteArrayOutputStream.toString());
+            }catch(Exception xx){
+                jsonObject = new JSONObject();
+            }
+
+            try
+            {
+
+                Iterator<?> keys = jsonObject.keys();
+
+                while (keys.hasNext())
+                {
+                    String key = (String) keys.next();
+                    String value = jsonObject.getString(key);
+                    parameters.put(key, value);
+
+                }
+
+
+            }
+            catch (Exception xx)
+            {
+                xx.toString();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return parameters;
     }
 
     static HashMap<String, String> getParameters(HttpExchange httpExchange) {
