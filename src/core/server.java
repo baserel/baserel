@@ -132,28 +132,14 @@ public class server {
             File f = new File(API_OUTPUT_DATA_PATH);
             if (f.isFile() && f.canRead()) {
 
-//                try{
-//
-//                    FileInputStream fis = new FileInputStream(API_OUTPUT_DATA_PATH);
-//                    ObjectInputStream ois = new ObjectInputStream(fis);
-//
-//                    DATA = (ConcurrentHashMap) ois.readObject();
-//
-//                    ois.close();
-//
-//                    API_FIRST_RUN = false;
-//
-//                } catch(IOException ioe)
-//                {
-//                    ioe.printStackTrace();
-//                    return;
-//                }catch(Exception e){
-//                    e.printStackTrace();
-//                    throw new Exception("Error trying to restore the database.");
-//                }
                 try{
 
-                    DATA = (ConcurrentHashMap) deserialize(readLineByLineJava8(API_OUTPUT_DATA_PATH));
+                    FileInputStream fis = new FileInputStream(API_OUTPUT_DATA_PATH);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+
+                    DATA = (ConcurrentHashMap) ois.readObject();
+
+                    ois.close();
 
                     API_FIRST_RUN = false;
 
@@ -291,46 +277,17 @@ public class server {
 
                             API_WRITTING_DATA = true;
 
-                            BufferedWriter bw = null;
-                            try {
-                                //Specify the file name and path here
-                                File file = new File(API_OUTPUT_DATA_PATH);
-
-                                /* This logic will make sure that the file
-                                 * gets created if it is not present at the
-                                 * specified location*/
-                                if (!file.exists()) {
-                                    file.createNewFile();
-                                }
-
-                                FileWriter fw = new FileWriter(file);
-                                bw = new BufferedWriter(fw);
-                                bw.write(serialize(DATA));
-
-                            } catch (IOException ioe) {
+                            try{
+                                FileOutputStream fos = new FileOutputStream(API_OUTPUT_DATA_PATH, false);
+                                ObjectOutputStream oos = new ObjectOutputStream(fos);
+                                oos.writeObject(DATA);
+                                oos.close();
+                                fos.close();
+                            }
+                            catch(IOException ioe)
+                            {
                                 ioe.printStackTrace();
                             }
-                            finally
-                            {
-                                try{
-                                    if(bw!=null)
-                                        bw.close();
-                                }catch(Exception ex){
-                                    System.out.println("Error in closing the BufferedWriter"+ex);
-                                }
-                            }
-
-//                            try{
-//                                FileOutputStream fos = new FileOutputStream(API_OUTPUT_DATA_PATH, false);
-//                                ObjectOutputStream oos = new ObjectOutputStream(fos);
-//                                oos.writeObject(DATA);
-//                                oos.close();
-//                                fos.close();
-//                            }
-//                            catch(IOException ioe)
-//                            {
-//                                ioe.printStackTrace();
-//                            }
 
                             API_OUTPUT_DATA_COUNTER = 0;
                             API_WRITTING_DATA = false;
