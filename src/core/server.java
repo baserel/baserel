@@ -49,7 +49,10 @@ public class server {
     private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1); // Initializing scheduler
 
     static boolean API_FIRST_RUN = true;
-    static String API_OUTPUT_DATA_PATH = "/ser/data.ser";
+    static boolean API_GRACEFUL_SHUTDOWN = false;
+    static boolean API_WRITTING_DATA = false;
+    static boolean API_STARTED = false;
+    static String API_OUTPUT_DATA_PATH = "ser/data.ser";
     static String API_CORE_KEY = "ntiqfki5h28HaVd2eycytwHZn4ooQmRmsU4tQx2y3g7aZCoE8CFbvEWT2omjDjj4"; // System Key to validate ADM commands
     static ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>> DATA = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>>();
     static boolean API_EXPERIMENTAL = true; // Disable ADM API Auth and show additional information while an error
@@ -129,14 +132,28 @@ public class server {
             File f = new File(API_OUTPUT_DATA_PATH);
             if (f.isFile() && f.canRead()) {
 
+//                try{
+//
+//                    FileInputStream fis = new FileInputStream(API_OUTPUT_DATA_PATH);
+//                    ObjectInputStream ois = new ObjectInputStream(fis);
+//
+//                    DATA = (ConcurrentHashMap) ois.readObject();
+//
+//                    ois.close();
+//
+//                    API_FIRST_RUN = false;
+//
+//                } catch(IOException ioe)
+//                {
+//                    ioe.printStackTrace();
+//                    return;
+//                }catch(Exception e){
+//                    e.printStackTrace();
+//                    throw new Exception("Error trying to restore the database.");
+//                }
                 try{
 
-                    FileInputStream fis = new FileInputStream(API_OUTPUT_DATA_PATH);
-                    ObjectInputStream ois = new ObjectInputStream(fis);
-
-                    DATA = (ConcurrentHashMap) ois.readObject();
-
-                    ois.close();
+                    DATA = (ConcurrentHashMap) deserialize(readLineByLineJava8(API_OUTPUT_DATA_PATH));
 
                     API_FIRST_RUN = false;
 
@@ -150,6 +167,8 @@ public class server {
                 }
 
             }
+
+            API_STARTED = true;
 
             System.out.println("Server is runing");
 
@@ -261,24 +280,65 @@ public class server {
             @Override
             public void run()
             {
-                API_OUTPUT_DATA_COUNTER++;
 
-                if(API_OUTPUT_DATA_COUNTER >= API_OUTPUT_DATA_MAX_COUNTER)
-                {
-                    try{
-                        FileOutputStream fos = new FileOutputStream(API_OUTPUT_DATA_PATH, false);
-                        ObjectOutputStream oos = new ObjectOutputStream(fos);
-                        oos.writeObject(DATA);
-                        oos.close();
-                        fos.close();
+                if(API_STARTED){
+                    if(!API_GRACEFUL_SHUTDOWN){
+
+                        API_OUTPUT_DATA_COUNTER++;
+
+                        if(API_OUTPUT_DATA_COUNTER >= API_OUTPUT_DATA_MAX_COUNTER && !API_WRITTING_DATA)
+                        {
+
+                            API_WRITTING_DATA = true;
+
+                            BufferedWriter bw = null;
+                            try {
+                                //Specify the file name and path here
+                                File file = new File(API_OUTPUT_DATA_PATH);
+
+                                /* This logic will make sure that the file
+                                 * gets created if it is not present at the
+                                 * specified location*/
+                                if (!file.exists()) {
+                                    file.createNewFile();
+                                }
+
+                                FileWriter fw = new FileWriter(file);
+                                bw = new BufferedWriter(fw);
+                                bw.write(serialize(DATA));
+
+                            } catch (IOException ioe) {
+                                ioe.printStackTrace();
+                            }
+                            finally
+                            {
+                                try{
+                                    if(bw!=null)
+                                        bw.close();
+                                }catch(Exception ex){
+                                    System.out.println("Error in closing the BufferedWriter"+ex);
+                                }
+                            }
+
+//                            try{
+//                                FileOutputStream fos = new FileOutputStream(API_OUTPUT_DATA_PATH, false);
+//                                ObjectOutputStream oos = new ObjectOutputStream(fos);
+//                                oos.writeObject(DATA);
+//                                oos.close();
+//                                fos.close();
+//                            }
+//                            catch(IOException ioe)
+//                            {
+//                                ioe.printStackTrace();
+//                            }
+
+                            API_OUTPUT_DATA_COUNTER = 0;
+                            API_WRITTING_DATA = false;
+
+                        }
+                    }else if(!API_WRITTING_DATA){
+                        System.exit(0);
                     }
-                    catch(IOException ioe)
-                    {
-                        ioe.printStackTrace();
-                    }
-
-                    API_OUTPUT_DATA_COUNTER = 0;
-
                 }
             }
         };
@@ -4100,6 +4160,57 @@ public class server {
 
                     }
 
+                } else if (parameters.get("_action").equals("api_graceful_shutdown")) { //TODO command action
+
+
+                    if (parameters.get("_email") == null) {
+
+                        try {
+
+                            response.put("result", "ERR119");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR119"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+
+                        try {
+
+                            response.put("result", "ERR126");
+                            response.put("text", "Access denied");
+
+                            if (API_EXPERIMENTAL) {
+                                response.put("info", API_MESSAGES.get("ERR126"));
+                            }
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    } else {
+
+                        API_GRACEFUL_SHUTDOWN = true;
+
+                        try {
+
+                            response.put("result", "SUC100");
+                            response.put("text", API_MESSAGES.get("SUC100"));
+
+                        } catch (JSONException e) {
+
+                            e.printStackTrace();
+                        }
+
+                    }
+
                 } else if (parameters.get("_action").equals("create_script")) { //TODO command action
 
 
@@ -4790,7 +4901,7 @@ public class server {
 
         public void handle(HttpExchange httpExchange) throws IOException {
 
-            ScriptEngine engine = new ScriptEngineManager().getEngineByName("Rhino");
+            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
 
             JSONObject response = new JSONObject();
 
@@ -4902,6 +5013,7 @@ public class server {
 
                             }
                         }
+
                         if(DATA.get("_core").get("_project_scripts").get(project) != null){
                             for (Entry<String, String> entry : DATA.get("_core").get("_project_scripts").get(project).entrySet()) {
 
@@ -4918,7 +5030,11 @@ public class server {
 
                         Boolean error = false;
 
+                        System.out.println("CMD: "+uri);
+
                         try {
+
+                            System.out.println("Script runned");
 
                             engine.eval("var Data = Java.type('java.util.concurrent.ConcurrentHashMap');");
                             engine.eval("var _data = Java.type('core.server.helpers');");
@@ -4927,6 +5043,9 @@ public class server {
                             engine.eval("_req = JSON.parse(_req);");
                             engine.eval("_tables = JSON.parse(_tables);");
                             engine.eval("_scripts = JSON.parse(_scripts);");
+                            engine.eval("strfy = JSON.stringify;");
+                            engine.eval("insert = _data.insert;");
+                            engine.eval("send = _scripts.send;");
 
                             engine.eval(DATA.get("_core").get("_scripts").get(script).get("script"));
 
@@ -4935,6 +5054,8 @@ public class server {
                         } catch (ScriptException e) {
                             //e.printStackTrace();
                             error = true;
+
+                            System.out.println("Script error catched: "+ e.getMessage());
                         }
 
                         if(error){
@@ -5717,6 +5838,24 @@ public class server {
             e.printStackTrace();
         }
         return contentBuilder.toString();
+    }
+
+    private static String serialize(Serializable o) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(o);
+        oos.close();
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+
+    private static Object deserialize(String s) throws IOException,
+            ClassNotFoundException {
+        byte[] data = Base64.getDecoder().decode(s);
+        ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(data));
+        Object o = ois.readObject();
+        ois.close();
+        return o;
     }
 
 }
