@@ -55,6 +55,7 @@ public class server {
     static String API_OUTPUT_DATA_PATH = "ser/data.ser";
     static String API_CORE_KEY = "ntiqfki5h28HaVd2eycytwHZn4ooQmRmsU4tQx2y3g7aZCoE8CFbvEWT2omjDjj4"; // System Key to validate ADM commands
     static ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>> DATA = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>>();
+    static JSONObject JDATA;
     static boolean API_EXPERIMENTAL = true; // Disable ADM API Auth and show additional information while an error
     static Map<String, String> API_MESSAGES = new HashMap<String, String>();
     static int API_OUTPUT_DATA_COUNTER = 0;
