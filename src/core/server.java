@@ -52,14 +52,16 @@ public class server {
     static boolean API_GRACEFUL_SHUTDOWN = false;
     static boolean API_WRITTING_DATA = false;
     static boolean API_STARTED = false;
-    static String API_OUTPUT_DATA_PATH = "ser/data.ser";
+    static String API_CRYPTO_KEY = "h6Ka4p69Yp7t6CmW";
+    static String API_OUTPUT_DATA_PATH = "bsrldb/data.bsrldb";
+    static String API_OUTPUT_JUNK_PATH = "bsrldb/junk.bsrldb";
     static String API_CORE_KEY = "ntiqfki5h28HaVd2eycytwHZn4ooQmRmsU4tQx2y3g7aZCoE8CFbvEWT2omjDjj4"; // System Key to validate ADM commands
     static ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>> DATA = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>>();
     static JSONObject JDATA;
     static boolean API_EXPERIMENTAL = true; // Disable ADM API Auth and show additional information while an error
     static Map<String, String> API_MESSAGES = new HashMap<String, String>();
     static int API_OUTPUT_DATA_COUNTER = 0;
-    static int API_OUTPUT_DATA_MAX_COUNTER = 3;
+    static int API_OUTPUT_DATA_MAX_COUNTER = 10;
     /**
      * @param args
      */
@@ -128,32 +130,99 @@ public class server {
             System.out.println("Preparing database...");
 
             //Making Ser dir
-            new File("ser").mkdir();
+            new File("bsrldb").mkdir();
 
             File f = new File(API_OUTPUT_DATA_PATH);
             if (f.isFile() && f.canRead()) {
 
-                try{
+//                try{
+//
+//                    FileInputStream fis = new FileInputStream(API_OUTPUT_DATA_PATH);
+//                    ObjectInputStream ois = new ObjectInputStream(fis);
+//
+//                    DATA = (ConcurrentHashMap) ois.readObject();
+//
+//                    ois.close();
+//
+//                    API_FIRST_RUN = false;
+//
+//                } catch(IOException ioe)
+//                {
+//                    ioe.printStackTrace();
+//                    return;
+//                }catch(Exception e){
+//                    e.printStackTrace();
+//                    throw new Exception("Error trying to restore the database.");
+//                }
+                StringBuilder contentBuilder = new StringBuilder();
 
-                    FileInputStream fis = new FileInputStream(API_OUTPUT_DATA_PATH);
-                    ObjectInputStream ois = new ObjectInputStream(fis);
-
-                    DATA = (ConcurrentHashMap) ois.readObject();
-
-                    ois.close();
-
-                    API_FIRST_RUN = false;
-
-                } catch(IOException ioe)
-                {
-                    ioe.printStackTrace();
-                    return;
-                }catch(Exception e){
-                    e.printStackTrace();
-                    throw new Exception("Error trying to restore the database.");
+                try {
+                    CryptoUtils.decrypt(API_CRYPTO_KEY, new File(API_OUTPUT_DATA_PATH), new File(API_OUTPUT_JUNK_PATH));
+                } catch (CryptoException ex) {
+                    System.out.println(ex.getMessage());
+                    ex.printStackTrace();
                 }
 
+                try (Stream<String> stream = Files.lines(Paths.get(API_OUTPUT_JUNK_PATH), StandardCharsets.UTF_8)) {
+                    stream.forEach(s -> contentBuilder.append(s));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                JSONObject junk_json = new JSONObject(contentBuilder.toString());
+
+                JSONArray keys = junk_json.names();
+
+                for (int i = 0; i < keys.length(); ++i) {
+
+                    String key = keys.getString(i); // Here's your key
+
+                    DATA.put(key, new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>());
+
+                    JSONArray keys2 = junk_json.getJSONObject(key).names();
+
+                    if(keys2 != null){
+
+                        for (int i2 = 0; i2 < keys2.length(); ++i2) {
+
+                            String key2 = keys2.getString(i2); // Here's your key
+
+                            DATA.get(key).put(key2, new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>());
+
+                            JSONArray keys3 = junk_json.getJSONObject(key).getJSONObject(key2).names();
+
+                            if(keys3 != null){
+
+                                for (int i3 = 0; i3 < keys3.length(); ++i3) {
+
+                                    String key3 = keys3.getString(i3); // Here's your key
+
+                                    DATA.get(key).get(key2).put(key3, new ConcurrentHashMap<String, String>());
+
+                                    JSONArray keys4 = junk_json.getJSONObject(key).getJSONObject(key2).getJSONObject(key3).names();
+
+                                    if(keys4 != null){
+
+                                        for (int i4 = 0; i4 < keys4.length(); ++i4) {
+
+                                            String key4 = keys4.getString(i4); // Here's your key
+
+                                            DATA.get(key).get(key2).get(key3).put(key4, junk_json.getJSONObject(key).getJSONObject(key2).getJSONObject(key3).get(key4).toString());
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                }
+
+                API_FIRST_RUN = false;
+
             }
+
+            new File(API_OUTPUT_JUNK_PATH).delete();
 
             API_STARTED = true;
 
@@ -277,25 +346,31 @@ public class server {
                         {
 
                             API_WRITTING_DATA = true;
+//
+//                            try{
+//                                FileOutputStream fos = new FileOutputStream(API_OUTPUT_DATA_PATH, false);
+//                                ObjectOutputStream oos = new ObjectOutputStream(fos);
+//                                oos.writeObject(DATA);
+//                                oos.close();
+//                                fos.close();
+//                            }
+//                            catch(IOException ioe)
+//                            {
+//                                ioe.printStackTrace();
+//                            }
 
-                            try{
-                                FileOutputStream fos = new FileOutputStream(API_OUTPUT_DATA_PATH, false);
-                                ObjectOutputStream oos = new ObjectOutputStream(fos);
-                                oos.writeObject(DATA);
-                                oos.close();
-                                fos.close();
-                            }
-                            catch(IOException ioe)
-                            {
-                                ioe.printStackTrace();
-                            }
+                            SaveToDisk();
 
                             API_OUTPUT_DATA_COUNTER = 0;
                             API_WRITTING_DATA = false;
 
                         }
                     }else if(!API_WRITTING_DATA){
+
+                        SaveToDisk();
+
                         System.exit(0);
+
                     }
                 }
             }
@@ -5045,6 +5120,49 @@ public class server {
     // @@@@@
     // HELPER METHODS
     // @@@@@
+
+
+    private static void SaveToDisk(){
+
+        BufferedWriter bw = null;
+
+        File junk_file = new File(API_OUTPUT_JUNK_PATH);
+
+        try {
+
+            /* This logic will make sure that the file
+             * gets created if it is not present at the
+             * specified location*/
+            if (!junk_file.exists()) {
+                junk_file.createNewFile();
+            }
+
+            FileWriter fw = new FileWriter(junk_file);
+            bw = new BufferedWriter(fw);
+            bw.write(new JSONObject(DATA).toString());
+
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        } finally {
+            try {
+                if (bw != null)
+                    bw.close();
+            } catch (Exception ex) {
+                System.out.println("Error in closing the BufferedWriter" + ex);
+            }
+        }
+
+        try {
+            CryptoUtils.encrypt(API_CRYPTO_KEY, junk_file, new File(API_OUTPUT_DATA_PATH));
+        } catch (CryptoException ex) {
+            System.out.println(ex.getMessage());
+            ex.printStackTrace();
+        }
+
+        junk_file.delete();
+
+    }
+
     private static String toJson(String s) {
         String r = "";
         try {
