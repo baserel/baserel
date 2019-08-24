@@ -11,6 +11,8 @@ import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -117,7 +119,6 @@ public class server {
                 }
             });*/
             // TODO Handlers contexts
-            httpsServer.createContext("/test", new TestHandler());
             httpsServer.createContext("/adm", new AdmHandler());
             httpsServer.createContext("/put", new PutHandler());
             httpsServer.createContext("/get", new GetHandler());
@@ -129,8 +130,11 @@ public class server {
             // TODO Preparing database
             System.out.println("Preparing database...");
 
-            //Making Ser dir
+            //Making Database dir
             new File("bsrldb").mkdir();
+
+            //Making Logs dir
+            new File("bsrllogs").mkdir();
 
             File f = new File(API_OUTPUT_DATA_PATH);
             if (f.isFile() && f.canRead()) {
@@ -389,30 +393,11 @@ public class server {
 
     //TODO Starting defining handlers
 
-    static class TestHandler implements HttpHandler { //TODO Handler
-
-        public void handle(HttpExchange httpExchange) throws IOException {
-
-            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
-            String response = "";
-
-            engine.put("_id", "1");
-
-            try {
-                response = engine.eval("_id == 1").toString();
-            } catch (ScriptException e) {
-                //e.printStackTrace();
-                response = "error";
-            }
-
-            server.writeResponse(httpExchange, response);
-
-        }
-    }
-
     static class PutHandler implements HttpHandler { //TODO Handler
 
         public void handle(HttpExchange httpExchange) throws IOException {
+
+            long start = System.currentTimeMillis();
 
             JSONObject response = new JSONObject();
 
@@ -649,6 +634,14 @@ public class server {
             }
 
             server.writeResponse(httpExchange, response.toString());
+
+            long end = System.currentTimeMillis();
+
+            DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+            Date date = new Date();
+
+            WriteLogs("Performance", "PUT:"+httpExchange.getRequestHeaders().get("Authorization").toArray()[0].toString()+"@"+project+"/"+table+" "+dateFormat.format(date)+" "+(end-start));
+
         }
 
     }
@@ -656,6 +649,8 @@ public class server {
     static class GetHandler implements HttpHandler { //TODO Handler
 
         public void handle(HttpExchange httpExchange) throws IOException {
+
+            long start = System.currentTimeMillis();
 
             JSONObject response = new JSONObject();
 
@@ -769,12 +764,21 @@ public class server {
             }
 
             server.writeResponse(httpExchange, response.toString());
+
+            long end = System.currentTimeMillis();
+
+            DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+            Date date = new Date();
+
+            WriteLogs("Performance", "GET:"+httpExchange.getRequestHeaders().get("Authorization").toArray()[0].toString()+"@"+project+"/"+table+" "+dateFormat.format(date)+" "+(end-start));
         }
     }
 
     static class DelHandler implements HttpHandler { //TODO Handler
 
         public void handle(HttpExchange httpExchange) throws IOException {
+
+            long start = System.currentTimeMillis();
 
             JSONObject response = new JSONObject();
 
@@ -939,6 +943,13 @@ public class server {
             }
 
             server.writeResponse(httpExchange, response.toString());
+
+            long end = System.currentTimeMillis();
+
+            DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+            Date date = new Date();
+
+            WriteLogs("Performance", "DEL:"+httpExchange.getRequestHeaders().get("Authorization").toArray()[0].toString()+"@"+project+"/"+table+" "+dateFormat.format(date)+" "+(end-start));
         }
     }
 
@@ -4969,6 +4980,8 @@ public class server {
 
         public void handle(HttpExchange httpExchange) throws IOException {
 
+            long start = System.currentTimeMillis();
+
             JSONObject response = new JSONObject();
 
             String response_str = "";
@@ -5068,12 +5081,42 @@ public class server {
             }
 
             server.writeResponse(httpExchange, response_str);
+
+            long end = System.currentTimeMillis();
+
+            DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+            Date date = new Date();
+
+            WriteLogs("Performance", "CMD:"+httpExchange.getRequestHeaders().get("Authorization").toArray()[0].toString()+"@"+project+"/"+script+" "+dateFormat.format(date)+" "+(end-start));
         }
     }
 
     // @@@@@
     // TODO HELPER METHODS
     // @@@@@
+
+    private static void WriteLogs(String logs, String message){
+
+        new Thread(() -> {
+
+            DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+            Date date = new Date();
+
+            String filename = dateFormat.format(date)+".bsrllog";
+
+            new File("bsrllogs/"+logs).mkdir();
+
+            try(PrintWriter output = new PrintWriter(new FileWriter("bsrllogs/"+logs+"/"+filename,true)))
+            {
+                output.printf("%s\r\n", message);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }).start();
+
+    }
 
     private static String StartScripting(String project, String script, JSONObject request){
 
