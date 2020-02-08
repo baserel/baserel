@@ -119,6 +119,7 @@ public class server {
                 }
             });*/
             // TODO Handlers contexts
+            httpsServer.createContext("/test", new TestHandler());
             httpsServer.createContext("/adm", new AdmHandler());
             httpsServer.createContext("/put", new PutHandler());
             httpsServer.createContext("/get", new GetHandler());
@@ -392,6 +393,23 @@ public class server {
     // @@@@@
 
     //TODO Starting defining handlers
+
+    static class TestHandler implements HttpHandler { //TODO Handler
+
+        public void handle(HttpExchange httpExchange) throws IOException {
+
+            long start = System.currentTimeMillis();
+
+            JSONObject response = new JSONObject();
+
+            Map<String, String> parameters = getParametersJSON(httpExchange);
+
+
+
+            server.writeResponse(httpExchange, parameters.toString());
+
+        }
+    }
 
     static class PutHandler implements HttpHandler { //TODO Handler
 
@@ -750,11 +768,15 @@ public class server {
                                 }
                             } else {
 
-                                if (parameters.get("_where") == null) {
-                                    response = new JSONObject(DATA.get(project).get(table));
-                                } else {
+                                System.out.println(parameters.toString());
+
+                                if (index != "") {
+                                    response = new JSONObject(DATA.get(project).get(table).get(index));
+                                } else if (parameters.get("_where") != null) {
                                     response = new JSONObject(
                                             filterTable(DATA.get(project).get(table), parameters.get("_where")));
+                                } else {
+                                    response = new JSONObject(DATA.get(project).get(table));
                                 }
 
                             }
@@ -5177,9 +5199,11 @@ public class server {
             engine.eval("_scripts = JSON.parse(_scripts);");
             engine.eval("strfy = JSON.stringify;");
             engine.eval("parse = JSON.parse;");
-            engine.eval("insert = _data.insert;");
             engine.eval("function run(project_script, request){return parse(_script.run(project_script, strfy(request)));}");
             engine.eval("function runAsync(project_script, request){_script.runAsync(project_script, strfy(request));}");
+            engine.eval("function query(project_script, request = ''){return parse(_data.query(project_script, request));}");
+            engine.eval("function empty(str){return (str == null || str == '') ? true : false}");
+            engine.eval("function insert(pt, o){var d = new Data; for(var k in o){ d.put(k, o[k]); } return parse(_data.insert(pt, d));}");
 
             engine.eval(DATA.get("_core").get("_scripts").get(script).get("script"));
 
@@ -6021,7 +6045,22 @@ public class server {
     //TODO HELPER CLASSES
 
     public static class helpers{ //TODO helper class
-        public static Map<String, String> insert(String project_table, ConcurrentHashMap<String, String> map){
+        public static JSONObject query(String project_table, String where){
+
+            String project = project_table.split("_")[0];
+            String table = project_table.split("_")[1];
+
+            System.out.println(project_table);
+            System.out.println(where);
+
+            if(where == ""){
+                return new JSONObject(DATA.get(project).get(table));
+            }else{
+                return new JSONObject(filterTable(DATA.get(project).get(table), where));
+            }
+
+        }
+        public static JSONObject insert(String project_table, ConcurrentHashMap<String, String> map){
 
             String project = project_table.split("_")[0];
             String table = project_table.split("_")[1];
@@ -6045,7 +6084,7 @@ public class server {
 
             response.put("index", index);
 
-            return response;
+            return new JSONObject(response);
         }
     }
 
