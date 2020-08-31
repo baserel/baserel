@@ -31,6 +31,12 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import com.eclipsesource.v8.V8;
+import com.eclipsesource.v8.V8RuntimeException;
+import com.eclipsesource.v8.V8ScriptException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.alicorn.v8.V8JavaAdapter;
 import org.apache.commons.lang.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -766,13 +772,15 @@ public class server {
                                 }
                             } else {
 
-                                System.out.println(parameters.toString());
+                                System.out.println(project+"_"+table);
 
                                 if (index != "") {
                                     response = new JSONObject(DATA.get(project).get(table).get(index));
                                 } else if (parameters.get("_where") != null) {
+
                                     response = new JSONObject(
                                             filterTable(DATA.get(project).get(table), parameters.get("_where")));
+
                                 } else {
                                     response = new JSONObject(DATA.get(project).get(table));
                                 }
@@ -5156,25 +5164,107 @@ public class server {
 
     private static String StartScripting(String project, String script, JSONObject request){
 
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+        try {
+            V8 v8 = V8.createV8Runtime();
 
-        JSONObject getObject = new JSONObject();
-        ConcurrentHashMap<String,String> tablesObject = new ConcurrentHashMap<String,String>();
-        ConcurrentHashMap<String,String> scriptsObject = new ConcurrentHashMap<String,String>();
-        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> putObject = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
+            //JSONObject getObject = new JSONObject();
+            ConcurrentHashMap<String, String> tablesObject = new ConcurrentHashMap<String, String>();
+            ConcurrentHashMap<String, String> scriptsObject = new ConcurrentHashMap<String, String>();
+            //ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>> putObject = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>();
 
-        String response_str = "";
-        JSONObject response = new JSONObject();
+            String response_str = "";
+            JSONObject response = new JSONObject();
 
-        if(DATA.get("_core").get("_project_tables").get(project) != null){
-            for (Entry<String, String> entry : DATA.get("_core").get("_project_tables").get(project).entrySet()) {
+            if(DATA.get("_core").get("_project_tables").get(project) != null){
+                for (Entry<String, String> entry : DATA.get("_core").get("_project_tables").get(project).entrySet()) {
 
-                putObject.put(DATA.get("_core").get("_tables").get(project + "_" + entry.getKey()).get("name"), DATA.get(project).get(entry.getKey()));
-                tablesObject.put(DATA.get("_core").get("_tables").get(project + "_" + entry.getKey()).get("name"), project + "_" + entry.getKey());
+                    tablesObject.put(DATA.get("_core").get("_tables").get(project + "_" + entry.getKey()).get("name"), project + "_" + entry.getKey());
+
+                }
+            }
+
+            if(DATA.get("_core").get("_project_scripts").get(project) != null){
+                for (Entry<String, String> entry : DATA.get("_core").get("_project_scripts").get(project).entrySet()) {
+
+                    scriptsObject.put(DATA.get("_core").get("_scripts").get(entry.getKey()).get("name"), project+"_"+entry.getKey());
+
+                }
+            }
+
+            Boolean error = false;
+
+            v8.executeVoidScript("var req = JSON.parse('" + request.toString() + "');");
+            v8.executeVoidScript("var tables = JSON.parse('" + new JSONObject(tablesObject).toString() + "');");
+            v8.executeVoidScript("var scripts = JSON.parse('" + new JSONObject(scriptsObject).toString() + "');");
+            v8.executeVoidScript("var res = {};");
+
+            helpers _h = new helpers();
+
+            v8.registerJavaMethod(_h, "get", "__helpers_get", new Class[]{String.class, String.class});
+            v8.registerJavaMethod(_h, "del", "__helpers_del", new Class[]{String.class, String.class});
+            v8.registerJavaMethod(_h, "set", "__helpers_set", new Class[]{String.class, String.class, String.class});
+            v8.registerJavaMethod(_h, "put", "__helpers_put", new Class[]{String.class, String.class});
+
+            v8.executeVoidScript("function get(project_table, id){ var id = (typeof id !== 'undefined') ? id.toString() : \"\";return JSON.parse(__helpers_get(project_table, id)) }");
+            v8.executeVoidScript("function del(project_table, id){ __helpers_del(project_table, id.toString()) }");
+            v8.executeVoidScript("function set(project_table, id, data){ __helpers_set(project_table, id.toString(), JSON.stringify(data)) }");
+            v8.executeVoidScript("function put(project_table, data){ return JSON.parse(__helpers_put(project_table, JSON.stringify(data))); }");
+
+            try {
+                v8.executeVoidScript(DATA.get("_core").get("_scripts").get(script).get("script"));
+                response_str = v8.executeStringScript("JSON.stringify(res)");
+            } catch (V8ScriptException e) {
+                response_str = "{\"error\":\"" + e.getMessage() + "\", \"line\":\"" + e.getLineNumber() + "\"}";
+                error = true;
+            }
+
+//        engine.put("_get", getObject);
+//        engine.put("_set", putObject);
+//        engine.put("_req", request);
+//        engine.put("_tables", new JSONObject(tablesObject));
+//        engine.put("_scripts", new JSONObject(scriptsObject));
+//
+//        try {
+//
+//            System.out.println("Script runned");
+//
+//            engine.eval("var Data = Java.type('java.util.concurrent.ConcurrentHashMap');");
+//            engine.eval("var _data = Java.type('core.server.helpers');");
+//            engine.eval("var _script = Java.type('core.server.scripts');");
+//            engine.eval("_get = JSON.parse(_get);");
+//            engine.eval("_req = JSON.parse(_req);");
+//            engine.eval("_tables = JSON.parse(_tables);");
+//            engine.eval("_scripts = JSON.parse(_scripts);");
+//            engine.eval("strfy = JSON.stringify;");
+//            engine.eval("parse = JSON.parse;");
+//            engine.eval("function run(project_script, request){return parse(_script.run(project_script, strfy(request)));}");
+//            engine.eval("function runAsync(project_script, request){_script.runAsync(project_script, strfy(request));}");
+//            engine.eval("function query(project_script, request){return parse(_data.query(project_script, request));}");
+//            engine.eval("function empty(str){return (str == null || str == '') ? true : false}");
+//            engine.eval("function insert(pt, o){var d = new Data; for(var k in o){ d.put(k, o[k]); } return parse(_data.insert(pt, d));}");
+//
+//            engine.eval(DATA.get("_core").get("_scripts").get(script).get("script"));
+//
+//            engine.eval("if(_res != null) _res = strfy(_res);");
+//
+//            if(engine.get("_res") != null) response_str = toJson(engine.get("_res").toString());
+//
+//        } catch (ScriptException e) {
+//            //e.printStackTrace();
+//            error = true;
+//
+//            System.out.println("Script error catched: "+ e.getMessage());
+//        }
+
+            v8.release();
+
+            if (error) {
 
                 try {
 
-                    getObject.put(DATA.get("_core").get("_tables").get(project + "_" + entry.getKey()).get("name"), DATA.get(project).get(entry.getKey()));
+                    response.put("result", "ERR200");
+                    response.put("text", "Scripting error");
+                    response.put("message", response_str);
 
                 } catch (JSONException e) {
 
@@ -5182,78 +5272,19 @@ public class server {
                 }
 
             }
-        }
 
-        if(DATA.get("_core").get("_project_scripts").get(project) != null){
-            for (Entry<String, String> entry : DATA.get("_core").get("_project_scripts").get(project).entrySet()) {
-
-                scriptsObject.put(DATA.get("_core").get("_scripts").get(entry.getKey()).get("name"), project+"_"+entry.getKey());
-
-            }
-        }
-
-        engine.put("_get", getObject);
-        engine.put("_set", putObject);
-        engine.put("_req", request);
-        engine.put("_tables", new JSONObject(tablesObject));
-        engine.put("_scripts", new JSONObject(scriptsObject));
-
-        Boolean error = false;
-
-        try {
-
-            System.out.println("Script runned");
-
-            engine.eval("var Data = Java.type('java.util.concurrent.ConcurrentHashMap');");
-            engine.eval("var _data = Java.type('core.server.helpers');");
-            engine.eval("var _script = Java.type('core.server.scripts');");
-            engine.eval("_get = JSON.parse(_get);");
-            engine.eval("_req = JSON.parse(_req);");
-            engine.eval("_tables = JSON.parse(_tables);");
-            engine.eval("_scripts = JSON.parse(_scripts);");
-            engine.eval("strfy = JSON.stringify;");
-            engine.eval("parse = JSON.parse;");
-            engine.eval("function run(project_script, request){return parse(_script.run(project_script, strfy(request)));}");
-            engine.eval("function runAsync(project_script, request){_script.runAsync(project_script, strfy(request));}");
-            engine.eval("function query(project_script, request = ''){return parse(_data.query(project_script, request));}");
-            engine.eval("function empty(str){return (str == null || str == '') ? true : false}");
-            engine.eval("function insert(pt, o){var d = new Data; for(var k in o){ d.put(k, o[k]); } return parse(_data.insert(pt, d));}");
-
-            engine.eval(DATA.get("_core").get("_scripts").get(script).get("script"));
-
-            engine.eval("if(_res != null) _res = strfy(_res);");
-
-            if(engine.get("_res") != null) response_str = toJson(engine.get("_res").toString());
-
-        } catch (ScriptException e) {
-            //e.printStackTrace();
-            error = true;
-
-            System.out.println("Script error catched: "+ e.getMessage());
-        }
-
-        if(error){
-
-            try {
-
-                response.put("result", "ERR200");
-                response.put("text", "Scripting error");
-
-            } catch (JSONException e) {
-
-                e.printStackTrace();
+            if (!error) {
+                return response_str;
+            } else {
+                return response.toString();
             }
 
-        }
-
-        if(!error){
-            return response_str;
-        }else{
-            return response.toString();
+        }catch(Exception e){
+            e.printStackTrace();
+            return "";
         }
 
     }
-
 
     private static void SaveToDisk(){
 
@@ -5372,6 +5403,7 @@ public class server {
         return ret;
 
     }
+
     public static String getColumns(String tablecode){
 
         String ret = "";
@@ -5389,6 +5421,7 @@ public class server {
         return ret;
 
     }
+
     public static String getColumnsCount(String tablecode){
 
         int ret = 0;
@@ -5443,20 +5476,20 @@ public class server {
 
         for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
 
-            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
-
-            engine.put("_id", entry.getKey());
-
-            for (Entry<String, String> se : entry.getValue().entrySet()) {
-                engine.put(se.getKey(), se.getValue());
-            }
+            V8 v8 = V8.createV8Runtime();
 
             try {
 
-                if(engine.eval(where).toString().equals("true")) result.put(entry.getKey(), entry.getValue());
+                V8JavaAdapter.injectObject("_id", entry.getKey(), v8);
 
-            } catch (ScriptException e) {
-                //e.printStackTrace();
+                for (Entry<String, String> se : entry.getValue().entrySet()) {
+                    V8JavaAdapter.injectObject(se.getKey(), se.getValue(), v8);
+                }
+
+                if(v8.executeBooleanScript(where)) result.put(entry.getKey(), entry.getValue());
+
+            } catch (V8RuntimeException e) {
+                e.printStackTrace();
                 success = false;
                 break;
             }
@@ -5478,19 +5511,19 @@ public class server {
 
         for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
 
-            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+            V8 v8 = V8.createV8Runtime();
 
-            engine.put("_id", entry.getKey());
+            V8JavaAdapter.injectObject("_id", entry.getKey(), v8);
 
             for (Entry<String, String> se : entry.getValue().entrySet()) {
-                engine.put(se.getKey(), se.getValue());
+                V8JavaAdapter.injectObject(se.getKey(), se.getValue(), v8);
             }
 
             try {
 
-                if(engine.eval(where).toString().equals("true")) DATA.get(project).get(table).remove(entry.getKey());
+                if(v8.executeBooleanScript("name == 'beth' || money == '111'")) DATA.get(project).get(table).remove(entry.getKey());
 
-            } catch (ScriptException e) {
+            } catch (V8RuntimeException e) {
                 //e.printStackTrace();
                 success = false;
                 break;
@@ -5513,22 +5546,22 @@ public class server {
 
         for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
 
-            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+            V8 v8 = V8.createV8Runtime();
 
             for (Entry<String, String> se : entry.getValue().entrySet()) {
-                engine.put(se.getKey(), se.getValue());
+                V8JavaAdapter.injectObject(se.getKey(), se.getValue(), v8);
             }
 
             try {
 
-                if(engine.eval(where).toString().equals("true")) {
+                if(v8.executeBooleanScript("name == 'beth' || money == '111'")) {
                     for (Entry<String, String> entry2 : parameters.entrySet()) {
                         DATA.get(project).get(table).get(entry.getKey()).put(entry2.getKey(), entry2.getValue());
                     }
 
                 }
 
-            } catch (ScriptException e) {
+            } catch (V8RuntimeException e) {
                 e.printStackTrace();
                 success = false;
                 break;
@@ -5753,6 +5786,37 @@ public class server {
         }
         return parameters;
     }
+
+    static ConcurrentHashMap<String, String> JSONToHashMap(String data){
+
+        ConcurrentHashMap<String, String> parameters = new ConcurrentHashMap<String, String>();
+        JSONObject o = new JSONObject();
+        try
+        {
+
+            o = new JSONObject(data);
+
+            Iterator<String> keys = o.keys();
+
+            while(keys.hasNext()) {
+                String key = keys.next();
+                System.out.println("KEEY: "+key+", VALUEE: "+o.get(key));
+                if (o.get(key) != null) {
+                    parameters.put(key, o.get(key).toString());
+                }
+            }
+
+        }
+        catch (Exception xx)
+        {
+            xx.toString();
+        }
+
+        System.out.println("REET: "+parameters);
+
+        return parameters;
+    }
+
     static JSONObject getParametersJSONObject(HttpExchange httpExchange) {
         JSONObject parameters = new JSONObject();
         InputStream inputStream = httpExchange.getRequestBody();
@@ -6015,6 +6079,7 @@ public class server {
         Random r = new Random();
         return rangeMin + (rangeMax - rangeMin) * r.nextDouble();
     }
+
     public static boolean isAlphanumeric(String str) {
         for (int i=0; i<str.length(); i++) {
             char c = str.charAt(i);
@@ -6059,6 +6124,93 @@ public class server {
     //TODO HELPER CLASSES
 
     public static class helpers{ //TODO helper class
+        public static String get(String project_table, String id){
+
+            String project = project_table.split("_")[0];
+            String table = project_table.split("_")[1];
+
+            //System.out.println(project_table);
+            //System.out.println(id);
+
+            if(id == "" || id == null || id.equals("")){
+                return (new JSONObject(DATA.get(project).get(table))).toString();
+            }else{
+                return (new JSONObject(DATA.get(project).get(table).get(id))).toString();
+            }
+
+        }
+        public static void del(String project_table, String id){
+
+            String project = project_table.split("_")[0];
+            String table = project_table.split("_")[1];
+
+            //System.out.println(project_table);
+            //System.out.println(id);
+
+            if(id != "" && id != null && !id.equals("")){
+                DATA.get(project).get(table).remove(id);
+            }
+
+        }
+        public static void set(String project_table, String id, String data){
+
+            String project = project_table.split("_")[0];
+            String table = project_table.split("_")[1];
+
+            //System.out.println(project_table);
+            //System.out.println(id);
+            //System.out.println(data);
+
+            if(id != "" && id != null && !id.equals("") && data != "" && data != null && !data.equals("")){
+
+                ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
+
+                for (Entry<String, String> entry : JSONToHashMap(data).entrySet()) {
+                    if(DATA.get("_core").get("_table_columns").get(project_table).get(entry.getKey()) != null){
+                        temp_map.put(entry.getKey(), entry.getValue());
+                    }
+                }
+
+                DATA.get(project).get(table).put(id, temp_map);
+
+            }
+
+        }
+        public static String put(String project_table, String data){
+
+            String project = project_table.split("_")[0];
+            String table = project_table.split("_")[1];
+            String index = "0";
+
+            Map<String, String> response = new HashMap<String, String>();
+
+            //System.out.println(project_table);
+            //System.out.println(data);
+
+            if(data != "" && data != null && !data.equals("")){
+
+                ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
+
+                for (Entry<String, String> entry : JSONToHashMap(data).entrySet()) {
+                    if(DATA.get("_core").get("_table_columns").get(project_table).get(entry.getKey()) != null){
+                        temp_map.put(entry.getKey(), entry.getValue());
+                    }
+                }
+
+                index = DATA.get("_core").get("_tables").get(project + "_" + table).get("index");
+
+                DATA.get(project).get(table).put(index, temp_map);
+
+                DATA.get("_core").get("_tables").get(project + "_" + table).put("index",
+                        (Integer.parseInt(index) + 1) + "");
+
+                response.put("index", index);
+
+            }
+
+            return new JSONObject(response).toString();
+
+        }
         public static JSONObject query(String project_table, String where){
 
             String project = project_table.split("_")[0];

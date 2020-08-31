@@ -52,5 +52,9 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="io.alicorn.v8:v8-adapter:1.59" level="project" />
+    <orderEntry type="library" name="com.eclipsesource.j2v8:j2v8_macosx_x86_64:4.6.0" level="project" />
+    <orderEntry type="library" name="com.fasterxml.jackson.core:jackson-core:2.7.3" level="project" />
+    <orderEntry type="library" name="com.fasterxml.jackson.core:jackson-databind:2.11.2" level="project" />
   </component>
 </module>
