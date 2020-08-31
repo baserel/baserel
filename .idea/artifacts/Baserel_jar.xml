@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="Baserel:jar">
-    <output-path>$USER_HOME$/Documents/Baserel/Enviroments/EngineDevelopment/Engine</output-path>
+    <output-path>$USER_HOME$/Nextcloud/Workspaces/Baserel/Baserel Engine/Jar</output-path>
     <root id="archive" name="Baserel.jar">
       <element id="module-output" name="Baserel" />
       <element id="extracted-dir" path="$PROJECT_DIR$/jars/java-json.jar" path-in-jar="/" />

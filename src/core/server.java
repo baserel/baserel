@@ -2318,51 +2318,62 @@ public class server {
 
                 } else if (parameters.get("_action").equals("get_projects")) { //TODO command action
 
+                    System.out.println(DATA.get("_core").get("_user_privileges").get(parameters.get("_email")));
+                    System.out.println(DATA.get("_core").get("_projects"));
 
-                    if (parameters.get("_email") == null) {
+                    try{
 
-                        try {
+                        if (parameters.get("_email") == null) {
 
-                            response.put("result", "ERR119");
-                            response.put("text", "Access denied");
+                            try {
 
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR119"));
+                                response.put("result", "ERR119");
+                                response.put("text", "Access denied");
+
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR119"));
+                                }
+
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
                             }
 
-                        } catch (JSONException e) {
+                        } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
 
-                            e.printStackTrace();
-                        }
+                            try {
 
-                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+                                response.put("result", "ERR126");
+                                response.put("text", "Access denied");
 
-                        try {
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR126"));
+                                }
 
-                            response.put("result", "ERR126");
-                            response.put("text", "Access denied");
+                            } catch (JSONException e) {
 
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR126"));
+                                e.printStackTrace();
                             }
 
-                        } catch (JSONException e) {
+                        } else {
 
-                            e.printStackTrace();
-                        }
-
-                    } else {
-
-                        if(DATA.get("_core").get("_user_privileges").get(parameters.get("_email")) != null) {
-                            for (Entry<String, String> entry : DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).entrySet()) {
-                                temp_keymap.put(entry.getKey(), DATA.get("_core").get("_projects").get(entry.getKey()));
-                                if (DATA.get("_core").get("_project_tables").get(entry.getKey()) != null)
-                                    temp_keymap.get(entry.getKey()).put("tables_count", "" + DATA.get("_core").get("_project_tables").get(entry.getKey()).size());
-                                else temp_keymap.get(entry.getKey()).put("tables_count", "0");
+                            if(DATA.get("_core").get("_user_privileges").get(parameters.get("_email")) != null) {
+                                for (Entry<String, String> entry : DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).entrySet()) {
+                                    temp_keymap.put(entry.getKey(), DATA.get("_core").get("_projects").get(entry.getKey()));
+                                    if (DATA.get("_core").get("_project_tables").get(entry.getKey()) != null)
+                                        temp_keymap.get(entry.getKey()).put("tables_count", "" + DATA.get("_core").get("_project_tables").get(entry.getKey()).size());
+                                    else temp_keymap.get(entry.getKey()).put("tables_count", "0");
+                                }
                             }
+
+                            response = new JSONObject(temp_keymap);
+                            System.out.println(response);
+
                         }
 
-                        response = new JSONObject(temp_keymap);
+                    } catch (Exception e) {
+
+                        e.printStackTrace();
 
                     }
 
@@ -2493,126 +2504,131 @@ public class server {
 
                 } else if (parameters.get("_action").equals("delete_project")) { //TODO command action
 
+                    try{
+                        if (parameters.get("_email") == null) {
 
-                    if (parameters.get("_email") == null) {
+                            try {
 
-                        try {
+                                response.put("result", "ERR119");
+                                response.put("text", "Access denied");
 
-                            response.put("result", "ERR119");
-                            response.put("text", "Access denied");
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR119"));
+                                }
 
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR119"));
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
                             }
 
-                        } catch (JSONException e) {
+                        } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
 
-                            e.printStackTrace();
-                        }
+                            try {
 
-                    } else if (DATA.get("_core").get("_users").get(parameters.get("_email")) == null) {
+                                response.put("result", "ERR126");
+                                response.put("text", "Access denied");
 
-                        try {
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR126"));
+                                }
 
-                            response.put("result", "ERR126");
-                            response.put("text", "Access denied");
+                            } catch (JSONException e) {
 
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR126"));
+                                e.printStackTrace();
                             }
 
-                        } catch (JSONException e) {
+                        } else if (parameters.get("_project") == null) {
 
-                            e.printStackTrace();
-                        }
+                            try {
 
-                    } else if (parameters.get("_project") == null) {
+                                response.put("result", "ERR102");
+                                response.put("text", "Access denied");
 
-                        try {
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR102"));
+                                }
 
-                            response.put("result", "ERR102");
-                            response.put("text", "Access denied");
+                            } catch (JSONException e) {
 
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR102"));
+                                e.printStackTrace();
                             }
 
-                        } catch (JSONException e) {
+                        } else if (DATA.get(parameters.get("_project")) == null) {
+                            try {
 
-                            e.printStackTrace();
-                        }
+                                response.put("result", "ERR104");
+                                response.put("text", "Access denied");
 
-                    } else if (DATA.get(parameters.get("_project")) == null) {
-                        try {
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR104"));
+                                }
 
-                            response.put("result", "ERR104");
-                            response.put("text", "Access denied");
+                            } catch (JSONException e) {
 
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR104"));
+                                e.printStackTrace();
+                            }
+                        } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
+                            try {
+
+                                response.put("result", "ERR103");
+                                response.put("text", "Access denied");
+
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR103"));
+                                }
+
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
+                            }
+                        } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
+                            try {
+
+                                response.put("result", "ERR129");
+                                response.put("text", "Access denied");
+
+                                if (API_EXPERIMENTAL) {
+                                    response.put("info", API_MESSAGES.get("ERR129"));
+                                }
+
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
+                            }
+                        } else {
+
+                            DATA.get("_core").get("_projects").remove(parameters.get("_project"));
+
+                            DATA.remove(parameters.get("_project"));
+
+                            for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get("_core").get("_privileges").entrySet()) {
+                                if(entry.getValue().get("project").equals(parameters.get("_project"))) DATA.get("_core").get("_privileges").remove(entry.getKey());
+                            }
+                            if(DATA.get("_core").get("_project_scripts").get(parameters.get("_project")) != null){
+                                for (Entry<String, String> entry : DATA.get("_core").get("_project_scripts").get(parameters.get("_project")).entrySet()) {
+                                    DATA.get("_core").get("_scripts").remove(entry.getKey());
+                                }
                             }
 
-                        } catch (JSONException e) {
+                            DATA.get("_core").get("_project_scripts").remove(parameters.get("_project"));
 
-                            e.printStackTrace();
-                        }
-                    } else if (!StringUtils.isAlphanumeric(parameters.get("_project"))) {
-                        try {
 
-                            response.put("result", "ERR103");
-                            response.put("text", "Access denied");
+                            DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).remove(parameters.get("_project"));
+                            DATA.get("_core").get("_project_privileges").remove(parameters.get("_project"));
+                            DATA.get("_core").get("_tables").remove(parameters.get("_project"));
 
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR103"));
+                            try {
+
+                                response.put("result", "SUC100");
+                                response.put("text", API_MESSAGES.get("SUC100"));
+
+                            } catch (JSONException e) {
+
+                                e.printStackTrace();
                             }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
                         }
-                    } else if (!server.hasPriviliges(parameters.get("_email"), parameters.get("_project"), "adm")) {
-                        try {
-
-                            response.put("result", "ERR129");
-                            response.put("text", "Access denied");
-
-                            if (API_EXPERIMENTAL) {
-                                response.put("info", API_MESSAGES.get("ERR129"));
-                            }
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
-                    } else {
-
-                        DATA.get("_core").get("_projects").remove(parameters.get("_project"));
-
-                        DATA.remove(parameters.get("_project"));
-
-                        for (Entry<String, ConcurrentHashMap<String, String>> entry : DATA.get("_core").get("_privileges").entrySet()) {
-                            if(entry.getValue().get("project").equals(parameters.get("_project"))) DATA.get("_core").get("_privileges").remove(entry.getKey());
-                        }
-                        for (Entry<String, String> entry : DATA.get("_core").get("_project_scripts").get(parameters.get("_project")).entrySet()) {
-                            DATA.get("_core").get("_scripts").remove(entry.getKey());
-                        }
-
-                        DATA.get("_core").get("_project_scripts").remove(parameters.get("_project"));
-
-
-                        DATA.get("_core").get("_user_privileges").get(parameters.get("_email")).remove(parameters.get("_project"));
-                        DATA.get("_core").get("_project_privileges").remove(parameters.get("_project"));
-                        DATA.get("_core").get("_tables").remove(parameters.get("_project"));
-
-                        try {
-
-                            response.put("result", "SUC100");
-                            response.put("text", API_MESSAGES.get("SUC100"));
-
-                        } catch (JSONException e) {
-
-                            e.printStackTrace();
-                        }
+                    }catch(Exception e){
+                        e.printStackTrace();
                     }
 
                     // END DEFINING ACTIONS
