@@ -404,8 +404,6 @@ public class server {
 
             Map<String, String> parameters = getParametersJSON(httpExchange);
 
-
-
             server.writeResponse(httpExchange, parameters.toString());
 
         }
