@@ -56,5 +56,15 @@
     <orderEntry type="library" name="com.eclipsesource.j2v8:j2v8_macosx_x86_64:4.6.0" level="project" />
     <orderEntry type="library" name="com.fasterxml.jackson.core:jackson-core:2.7.3" level="project" />
     <orderEntry type="library" name="com.fasterxml.jackson.core:jackson-databind:2.11.2" level="project" />
+    <orderEntry type="library" name="javax.xml.bind:jaxb-api:2.3.1" level="project" />
+    <orderEntry type="library" name="com.eclipsesource.j2v8:j2v8:1.0" level="project" />
+    <orderEntry type="library" name="j2v8_macosx_x86_64-4.6.0" level="project" />
+    <orderEntry type="library" name="jackson-annotations-2.11.2" level="project" />
+    <orderEntry type="library" name="jackson-core-2.7.3" level="project" />
+    <orderEntry type="library" name="jackson-core-2.11.2" level="project" />
+    <orderEntry type="library" name="jackson-databind-2.11.2" level="project" />
+    <orderEntry type="library" name="javax.activation-api-1.2.0" level="project" />
+    <orderEntry type="library" name="jaxb-api-2.3.1" level="project" />
+    <orderEntry type="library" name="v8-adapter-1.59" level="project" />
   </component>
 </module>

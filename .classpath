@@ -6,6 +6,14 @@
 			<accessrule kind="accessible" pattern="org/apache/commons/**"/>
 		</accessrules>
 	</classpathentry>
+	<classpathentry kind="lib" path="jars/j2v8_macosx_x86_64-4.6.0.jar"/>
+	<classpathentry kind="lib" path="jars/jackson-annotations-2.11.2.jar"/>
+	<classpathentry kind="lib" path="jars/jackson-core-2.7.3.jar"/>
+	<classpathentry kind="lib" path="jars/jackson-core-2.11.2.jar"/>
+	<classpathentry kind="lib" path="jars/jackson-databind-2.11.2.jar"/>
+	<classpathentry kind="lib" path="jars/javax.activation-api-1.2.0.jar"/>
+	<classpathentry kind="lib" path="jars/jaxb-api-2.3.1.jar"/>
+	<classpathentry kind="lib" path="jars/v8-adapter-1.59.jar"/>
 	<classpathentry kind="lib" path="jars/java-json.jar"/>
 	<classpathentry kind="lib" path="jars/apache-commons-lang.jar"/>
 	<classpathentry kind="src" path="src"/>

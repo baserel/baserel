@@ -61,8 +61,8 @@ public class server {
     static boolean API_WRITTING_DATA = false;
     static boolean API_STARTED = false;
     static String API_CRYPTO_KEY = "h6Ka4p69Yp7t6CmW";
-    static String API_OUTPUT_DATA_PATH = "bsrldb/data.bsrldb";
-    static String API_OUTPUT_JUNK_PATH = "bsrldb/junk.bsrldb";
+    static String API_OUTPUT_DATA_PATH = "ser/bsrldb/data.bsrldb";
+    static String API_OUTPUT_JUNK_PATH = "ser/bsrldb/junk.bsrldb";
     static String API_CORE_KEY = "ntiqfki5h28HaVd2eycytwHZn4ooQmRmsU4tQx2y3g7aZCoE8CFbvEWT2omjDjj4"; // System Key to validate ADM commands
     static ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>> DATA = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, String>>>>();
     static JSONObject JDATA;
@@ -138,10 +138,10 @@ public class server {
             System.out.println("Preparing database...");
 
             //Making Database dir
-            new File("bsrldb").mkdir();
+            new File("ser/bsrldb").mkdirs();
 
             //Making Logs dir
-            new File("bsrllogs").mkdir();
+            new File("ser/bsrllogs").mkdirs();
 
             File f = new File(API_OUTPUT_DATA_PATH);
             if (f.isFile() && f.canRead()) {
@@ -5148,9 +5148,9 @@ public class server {
 
             String filename = dateFormat.format(date)+".bsrllog";
 
-            new File("bsrllogs/"+logs).mkdir();
+            new File("ser/bsrllogs/"+logs).mkdir();
 
-            try(PrintWriter output = new PrintWriter(new FileWriter("bsrllogs/"+logs+"/"+filename,true)))
+            try(PrintWriter output = new PrintWriter(new FileWriter("ser/bsrllogs/"+logs+"/"+filename,true)))
             {
                 output.printf("%s\r\n", message);
             }
