@@ -15,7 +15,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="java-json.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/jars/java-json.jar!/" />
@@ -24,7 +24,7 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="apache-commons-lang.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/jars/apache-commons-lang.jar!/" />
@@ -34,37 +34,14 @@
       </library>
     </orderEntry>
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/jars/bsf.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/jars/oscript.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="library" name="io.alicorn.v8:v8-adapter:1.59" level="project" />
-    <orderEntry type="library" name="com.eclipsesource.j2v8:j2v8_macosx_x86_64:4.6.0" level="project" />
-    <orderEntry type="library" name="com.fasterxml.jackson.core:jackson-core:2.7.3" level="project" />
-    <orderEntry type="library" name="com.fasterxml.jackson.core:jackson-databind:2.11.2" level="project" />
-    <orderEntry type="library" name="javax.xml.bind:jaxb-api:2.3.1" level="project" />
-    <orderEntry type="library" name="com.eclipsesource.j2v8:j2v8:1.0" level="project" />
-    <orderEntry type="library" name="j2v8_macosx_x86_64-4.6.0" level="project" />
-    <orderEntry type="library" name="jackson-annotations-2.11.2" level="project" />
-    <orderEntry type="library" name="jackson-core-2.7.3" level="project" />
-    <orderEntry type="library" name="jackson-core-2.11.2" level="project" />
-    <orderEntry type="library" name="jackson-databind-2.11.2" level="project" />
-    <orderEntry type="library" name="javax.activation-api-1.2.0" level="project" />
-    <orderEntry type="library" name="jaxb-api-2.3.1" level="project" />
-    <orderEntry type="library" name="v8-adapter-1.59" level="project" />
+    <orderEntry type="library" exported="" name="j2v8_macosx_x86_64-4.6.0" level="project" />
+    <orderEntry type="library" exported="" name="jackson-annotations-2.11.2" level="project" />
+    <orderEntry type="library" exported="" name="jackson-core-2.7.3" level="project" />
+    <orderEntry type="library" exported="" name="jackson-core-2.11.2" level="project" />
+    <orderEntry type="library" exported="" name="jackson-databind-2.11.2" level="project" />
+    <orderEntry type="library" exported="" name="javax.activation-api-1.2.0" level="project" />
+    <orderEntry type="library" exported="" name="jaxb-api-2.3.1" level="project" />
+    <orderEntry type="library" exported="" name="v8-adapter-1.59" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="j2v8_linux_x86_64-4.8.0" level="project" />
   </component>
 </module>

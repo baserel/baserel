@@ -5,6 +5,12 @@
       <element id="module-output" name="Baserel" />
       <element id="extracted-dir" path="$PROJECT_DIR$/jars/java-json.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/jars/apache-commons-lang.jar" path-in-jar="/" />
+      <element id="library" level="project" name="j2v8_linux_x86_64-4.8.0" />
+      <element id="library" level="module" name="apache-commons-lang.jar" module-name="Baserel" />
+      <element id="library" level="project" name="jackson-core-2.11.2" />
+      <element id="library" level="project" name="jackson-databind-2.11.2" />
+      <element id="library" level="module" name="java-json.jar" module-name="Baserel" />
+      <element id="library" level="project" name="v8-adapter-1.59" />
     </root>
   </artifact>
 </component>
