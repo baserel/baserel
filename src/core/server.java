@@ -27,9 +27,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 
 import com.eclipsesource.v8.V8;
 import com.eclipsesource.v8.V8RuntimeException;
@@ -538,7 +535,7 @@ public class server {
                             } else {
 
                                 response = new JSONObject(
-                                        filterAndUpdateTable(DATA.get(project).get(table), parameters, project, table, where));
+                                        filterAndUpdateTable((new JSONObject(DATA.get(project).get(table))).toString(), parameters, project, table, where));
 
                                 try {
 
@@ -779,7 +776,7 @@ public class server {
                                 } else if (parameters.get("_where") != null) {
 
                                     response = new JSONObject(
-                                            filterTable(DATA.get(project).get(table), parameters.get("_where")));
+                                            filterTable((new JSONObject(DATA.get(project).get(table))).toString(), parameters.get("_where")));
 
                                 } else {
                                     response = new JSONObject(DATA.get(project).get(table));
@@ -934,7 +931,7 @@ public class server {
 
                                 } else {
 
-                                    if (filterAndDeleteTable(DATA.get(project).get(table), parameters.get("_where"), project, table)) {
+                                    if (filterAndDeleteTable((new JSONObject(DATA.get(project).get(table))).toString(), parameters.get("_where"), project, table)) {
                                         try {
 
                                             response.put("result", "SUC100");
@@ -5199,22 +5196,34 @@ public class server {
             v8.executeVoidScript("var res = {};");
 
             helpers _h = new helpers();
+            scripts _s = new scripts();
 
             v8.registerJavaMethod(_h, "get", "__helpers_get", new Class[]{String.class, String.class});
             v8.registerJavaMethod(_h, "del", "__helpers_del", new Class[]{String.class, String.class});
             v8.registerJavaMethod(_h, "set", "__helpers_set", new Class[]{String.class, String.class, String.class});
             v8.registerJavaMethod(_h, "put", "__helpers_put", new Class[]{String.class, String.class});
+            v8.registerJavaMethod(_h, "query", "__helpers_query", new Class[]{String.class, String.class});
+            v8.registerJavaMethod(_s, "run", "__scripts_run", new Class[]{String.class, String.class});
+            v8.registerJavaMethod(_s, "runAsync", "__scripts_runAsync", new Class[]{String.class, String.class});
 
             v8.executeVoidScript("function get(project_table, id){ var id = (typeof id !== 'undefined') ? id.toString() : \"\";return JSON.parse(__helpers_get(project_table, id)) }");
             v8.executeVoidScript("function del(project_table, id){ __helpers_del(project_table, id.toString()) }");
             v8.executeVoidScript("function set(project_table, id, data){ __helpers_set(project_table, id.toString(), JSON.stringify(data)) }");
             v8.executeVoidScript("function put(project_table, data){ return JSON.parse(__helpers_put(project_table, JSON.stringify(data))); }");
+            v8.executeVoidScript("function query(project_table, where){ var where = (typeof where !== 'undefined') ? where : \"\";return JSON.parse(__helpers_query(project_table, where)) }");
+
+            v8.executeVoidScript("strfy = JSON.stringify;");
+            v8.executeVoidScript("parse = JSON.parse;");
+            v8.executeVoidScript("function empty(str){return (str == null || str == '') ? true : false}");
+
+            v8.executeVoidScript("function run(project_script, request){var request = (typeof request !== 'undefined') ? request : {};return parse(__scripts_run(project_script, strfy(request)));}");
+            v8.executeVoidScript("function runAsync(project_script, request){var request = (typeof request !== 'undefined') ? request : {};__scripts_runAsync(project_script, strfy(request)); return {};}");
 
             try {
                 v8.executeVoidScript(DATA.get("_core").get("_scripts").get(script).get("script"));
                 response_str = v8.executeStringScript("JSON.stringify(res)");
             } catch (V8ScriptException e) {
-                response_str = "{\"error\":\"" + e.getMessage() + "\", \"line\":\"" + e.getLineNumber() + "\"}";
+                response_str = "Error: " + e.getMessage() + ". Line:" + e.getLineNumber() + ".";
                 error = true;
             }
 
@@ -5468,33 +5477,48 @@ public class server {
     }
 
     public static ConcurrentHashMap<String, ConcurrentHashMap<String, String>> filterTable(
-            ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, String where) {
+            String map, String where) {
 
         ConcurrentHashMap<String, ConcurrentHashMap<String, String>> result = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
 
         boolean success = true;
 
-        for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
+        V8 v8 = V8.createV8Runtime();
 
-            V8 v8 = V8.createV8Runtime();
+        System.out.println("var data = JSON.parse("+map+"); var res = {};");
 
-            try {
+        try {
 
-                V8JavaAdapter.injectObject("_id", entry.getKey(), v8);
+            v8.executeVoidScript("var data = "+map+"; var res = {};");
 
-                for (Entry<String, String> se : entry.getValue().entrySet()) {
-                    V8JavaAdapter.injectObject(se.getKey(), se.getValue(), v8);
-                }
+            v8.executeVoidScript("for(var i in data){var r = data[i]; if("+where+"){ res[i] = r; }}");
 
-                if(v8.executeBooleanScript(where)) result.put(entry.getKey(), entry.getValue());
+            result = JSONToNestedHashMap(v8.executeStringScript("JSON.stringify(res)"));
 
-            } catch (V8RuntimeException e) {
-                e.printStackTrace();
-                success = false;
-                break;
-            }
-
+        } catch (V8RuntimeException e) {
+            e.printStackTrace();
+            success = false;
         }
+
+//        for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
+//
+//            try {
+//
+//                V8JavaAdapter.injectObject("_id", entry.getKey(), v8);
+//
+//                for (Entry<String, String> se : entry.getValue().entrySet()) {
+//                    V8JavaAdapter.injectObject(se.getKey(), se.getValue(), v8);
+//                }
+//
+//                if(v8.executeBooleanScript(where)) result.put(entry.getKey(), entry.getValue());
+//
+//            } catch (V8RuntimeException e) {
+//                e.printStackTrace();
+//                success = false;
+//                break;
+//            }
+//
+//        }
 
         if (success)
             return result;
@@ -5502,40 +5526,22 @@ public class server {
             return new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
     }
 
-    public static boolean filterAndDeleteTable(
-            ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, String where, String project, String table) {
+    public static boolean filterAndDeleteTable(String map, String where, String project, String table) {
 
         ConcurrentHashMap<String, ConcurrentHashMap<String, String>> result = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
 
         boolean success = true;
 
-        for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
+        for (Entry<String, ConcurrentHashMap<String, String>> entry : filterTable(map, where).entrySet()) {
 
-            V8 v8 = V8.createV8Runtime();
-
-            V8JavaAdapter.injectObject("_id", entry.getKey(), v8);
-
-            for (Entry<String, String> se : entry.getValue().entrySet()) {
-                V8JavaAdapter.injectObject(se.getKey(), se.getValue(), v8);
-            }
-
-            try {
-
-                if(v8.executeBooleanScript("name == 'beth' || money == '111'")) DATA.get(project).get(table).remove(entry.getKey());
-
-            } catch (V8RuntimeException e) {
-                //e.printStackTrace();
-                success = false;
-                break;
-            }
+            DATA.get(project).get(table).remove(entry.getKey());
 
         }
 
         return success;
     }
 
-    public static boolean filterAndUpdateTable(
-            ConcurrentHashMap<String, ConcurrentHashMap<String, String>> map, HashMap<String, String> parameters, String project, String table, String where) {
+    public static boolean filterAndUpdateTable(String map, HashMap<String, String> parameters, String project, String table, String where) {
 
         ConcurrentHashMap<String, ConcurrentHashMap<String, String>> result = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
 
@@ -5544,27 +5550,10 @@ public class server {
 
         boolean success = true;
 
-        for (Entry<String, ConcurrentHashMap<String, String>> entry : map.entrySet()) {
+        for (Entry<String, ConcurrentHashMap<String, String>> entry : filterTable(map, where).entrySet()) {
 
-            V8 v8 = V8.createV8Runtime();
-
-            for (Entry<String, String> se : entry.getValue().entrySet()) {
-                V8JavaAdapter.injectObject(se.getKey(), se.getValue(), v8);
-            }
-
-            try {
-
-                if(v8.executeBooleanScript("name == 'beth' || money == '111'")) {
-                    for (Entry<String, String> entry2 : parameters.entrySet()) {
-                        DATA.get(project).get(table).get(entry.getKey()).put(entry2.getKey(), entry2.getValue());
-                    }
-
-                }
-
-            } catch (V8RuntimeException e) {
-                e.printStackTrace();
-                success = false;
-                break;
+            for (Entry<String, String> entry2 : parameters.entrySet()) {
+                DATA.get(project).get(table).get(entry.getKey()).put(entry2.getKey(), entry2.getValue());
             }
 
         }
@@ -5803,6 +5792,50 @@ public class server {
                 System.out.println("KEEY: "+key+", VALUEE: "+o.get(key));
                 if (o.get(key) != null) {
                     parameters.put(key, o.get(key).toString());
+                }
+            }
+
+        }
+        catch (Exception xx)
+        {
+            xx.toString();
+        }
+
+        System.out.println("REET: "+parameters);
+
+        return parameters;
+    }
+
+    static ConcurrentHashMap<String, ConcurrentHashMap<String, String>> JSONToNestedHashMap(String data){
+
+        ConcurrentHashMap<String, ConcurrentHashMap<String, String>> parameters = new ConcurrentHashMap<String, ConcurrentHashMap<String, String>>();
+        JSONObject o = new JSONObject();
+        try
+        {
+
+            System.out.println(data);
+
+            o = new JSONObject(data);
+
+            JSONArray keys = o.names();
+
+            for (int i = 0; i < keys.length(); ++i) {
+
+                String key = keys.getString(i);
+
+                parameters.put(key, new ConcurrentHashMap<String, String>());
+
+                JSONArray keys2 = o.getJSONObject(key).names();
+
+                if(keys2 != null){
+
+                    for (int i2 = 0; i2 < keys2.length(); ++i2) {
+
+                        String key2 = keys2.getString(i2); // Here's your key
+
+                        parameters.get(key).put(key2, o.getJSONObject(key).get(key2).toString());
+
+                    }
                 }
             }
 
@@ -6211,7 +6244,7 @@ public class server {
             return new JSONObject(response).toString();
 
         }
-        public static JSONObject query(String project_table, String where){
+        public static String query(String project_table, String where){
 
             String project = project_table.split("_")[0];
             String table = project_table.split("_")[1];
@@ -6219,43 +6252,19 @@ public class server {
             System.out.println(project_table);
             System.out.println(where);
 
-            if(where == ""){
-                return new JSONObject(DATA.get(project).get(table));
+            //return (new JSONObject(JSONToNestedHashMap((new JSONObject(DATA.get(project).get(table))).toString())).toString());
+
+            if(where != "" && where != null && !where.equals("")){
+                return (new JSONObject(filterTable((new JSONObject(DATA.get(project).get(table))).toString(), where))).toString();
             }else{
-                return new JSONObject(filterTable(DATA.get(project).get(table), where));
+                return (new JSONObject(DATA.get(project).get(table))).toString();
             }
 
-        }
-        public static JSONObject insert(String project_table, ConcurrentHashMap<String, String> map){
-
-            String project = project_table.split("_")[0];
-            String table = project_table.split("_")[1];
-            String index = "0";
-            Map<String, String> response = new HashMap<String, String>();
-
-            ConcurrentHashMap<String, String> temp_map = new ConcurrentHashMap<String, String>();
-
-            for (Entry<String, String> entry : map.entrySet()) {
-                if(DATA.get("_core").get("_table_columns").get(project_table).get(entry.getKey()) != null){
-                    temp_map.put(entry.getKey(), entry.getValue());
-                }
-            }
-
-            index = DATA.get("_core").get("_tables").get(project + "_" + table).get("index");
-
-            DATA.get(project).get(table).put(index, temp_map);
-
-            DATA.get("_core").get("_tables").get(project + "_" + table).put("index",
-                    (Integer.parseInt(index) + 1) + "");
-
-            response.put("index", index);
-
-            return new JSONObject(response);
         }
     }
 
     public static class scripts{ //TODO scripts class
-        public static JSONObject run(String project_script, String request){
+        public static String run(String project_script, String request){
 
             JSONObject response = new JSONObject();
 
@@ -6267,7 +6276,7 @@ public class server {
                 e.printStackTrace();
             }
 
-            return response;
+            return response.toString();
         }
         public static void runAsync(String project_script, String request){
             new Thread(() -> {
